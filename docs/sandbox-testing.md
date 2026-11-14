@@ -94,7 +94,9 @@ Final sandbox candidate branch in the isolated checkout is
 `feat/build-cleanup-scenarios`, head
 `04fe32f7b1233eb6f080bf8debd47c54c371c8a7` (base
 `ec545e81f0d3f7151572d925905ebdabe84d8f47`). Candidate commits were created
-only in the temporary clone; no remote branch or PR was created.
+only in the temporary clone during initial validation. After owner authorization,
+the candidate was rebased onto current main and pushed for draft review; see
+[pr-handoff.md](pr-handoff.md) for the current base and head.
 
 Validation used existing installed sandbox dependencies with explicit Node
 `24.21.0`: direct Prettier, ESLint, main/test TypeScript checks, OpenAPI validation,

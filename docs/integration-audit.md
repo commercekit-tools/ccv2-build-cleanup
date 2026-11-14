@@ -46,5 +46,6 @@ initiation behavior were added as a candidate patch. No new toolkit/package.
 Sandbox candidate is an isolated feature branch `feat/build-cleanup-scenarios`
 with final commit `04fe32f7b1233eb6f080bf8debd47c54c371c8a7`; its patch
 SHA-256 is `181e9949ebbcb38770b38fe7d918e03474aeec70023dd9bf5e978c3e2b673f57`.
-The root feature branch is local only; no remotely consumable immutable cleanup
-commit exists, so consumer examples retain explicitly marked replacement pins.
+The initial audit was local-only. The owner subsequently authorized pushing four
+feature branches for draft review; `pr-handoff.md` records exact pushed heads and
+rebased bases. Consumer examples now pin the pushed cleanup implementation.

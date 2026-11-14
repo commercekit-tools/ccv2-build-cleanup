@@ -65,8 +65,8 @@ orchestration and environment/database/backup deletion.
 ## Dry-run setup
 
 Use [manual-dry-run.yml](examples/manual-dry-run.yml) in a consumer repository.
-Replace the documented SHA placeholder with an independently reviewed immutable
-cleanup commit once available. There is no `v1` release. Configure only authorized
+The examples pin the locally validated, pushed unreleased implementation commit.
+Review that immutable commit before use; there is no `v1` release. Configure only authorized
 non-production credentials initially:
 
 - Secrets: CCV2_TOKEN_ENDPOINT, CCV2_CLIENT_ID, CCV2_CLIENT_SECRET, CCV2_RESOURCE.

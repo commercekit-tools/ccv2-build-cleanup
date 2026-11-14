@@ -49,6 +49,8 @@ Gates before release or real apply:
    and audit evidence, and do not automatically replay. Save findings and obtain
    a new approval before expanding scope or enabling a recurring apply schedule.
 
-Consumer examples deliberately contain SHA replacement placeholders. No current
-cleanup release/tag exists and the notification example requires a future tested
-Notify candidate commit. Repository validation never runs against SAP credentials.
+Consumer examples pin the pushed, unreleased cleanup implementation commit. No
+cleanup release/tag exists, and the notification example still requires a future
+supported compatible Notify pin after the publication gate. See pr-handoff.md
+for draft-review branches and updated source provenance. Repository validation
+never runs against SAP credentials.

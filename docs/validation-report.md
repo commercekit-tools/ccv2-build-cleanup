@@ -125,3 +125,10 @@ See [release-readiness.md](release-readiness.md) for the future controlled runbo
 
 No release, publication, merge, version/moving tag, production enablement or real
 SAP deletion occurred. All cleanup execution was local simulation.
+
+## Subsequent draft-review preparation
+
+The owner subsequently authorized pushing feature branches and opening draft
+PRs. See [pr-handoff.md](pr-handoff.md) for current heads, rebased bases and
+additional Notify schema/fixture validation. The results above remain the
+recorded local implementation validation; they do not claim remote CI status.

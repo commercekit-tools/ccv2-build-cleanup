@@ -1,6 +1,7 @@
 # Candidate integration only: published notification-contract 0.0.3 and current
 # Notify cannot emit/render cleanup. Apply reviewed additive patches and publish
-# separately, then replace BOTH SHA placeholders with validated compatible commits.
+# separately, then pin compatible Notify and a newly rebuilt cleanup commit.
+# The current cleanup pin remains safe but has an empty notification output.
 name: Preview and notify
 on:
   workflow_dispatch:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: commercekit-tools/ccv2-build-cleanup@REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA
+      - uses: commercekit-tools/ccv2-build-cleanup@37d560786d9b119206a24ddf83158b3cc1994fbd
         id: cleanup
         with:
           token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}

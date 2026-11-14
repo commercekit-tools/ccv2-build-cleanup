@@ -36,9 +36,9 @@ jobs:
           const dryRun = !(enabled && (schedule || explicitManualApply));
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `dry_run=${dryRun}\n`);
           NODE
-      # Replace REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA with an immutable,
-      # validated cleanup commit. No release tag exists yet.
-      - uses: commercekit-tools/ccv2-build-cleanup@REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA
+      # Immutable unreleased implementation commit, validated locally.
+      # SAP eligibility and notification publication gates remain blocked.
+      - uses: commercekit-tools/ccv2-build-cleanup@37d560786d9b119206a24ddf83158b3cc1994fbd
         id: cleanup
         with:
           token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}

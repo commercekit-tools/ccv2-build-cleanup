@@ -7,8 +7,9 @@ reports this compatibility gate. It never labels cleanup as a build or file chec
 These focused dependent patches prepare the minimum extension to the existing
 notification-contract package and notify presentation layer. They add no package,
 OAuth, transport, provider delivery, or webhook implementation. Both original
-working trees remain unchanged. Candidate branches exist only in isolated local
-clones; no commits, PRs, publication, merge, tag, or deploy were performed.
+working trees remain unchanged. Candidate branches were prepared in isolated checkouts and pushed for draft
+review after explicit owner authorization. Commit and branch provenance is in
+`../docs/pr-handoff.md`. No publication, merge, tag, or deploy was performed.
 
 The matching candidate contract factory is `createBuildCleanupEvent`, producing
 `ccv2.build-cleanup.completed` using the existing completed status vocabulary.

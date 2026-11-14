@@ -1,8 +1,8 @@
 diff --git a/README.md b/README.md
-index 63768d4..f2eaf20 100644
+index 63768d4..29b44dd 100644
 --- a/README.md
 +++ b/README.md
-@@ -134,3 +134,12 @@ pnpm payload:preview --provider teams-workflow --event deployment-action-require
+@@ -134,3 +134,24 @@ pnpm payload:preview --provider teams-workflow --event deployment-action-require
  The command accepts only committed fixture names, validates the event through production code, and prints formatted payload JSON. It does not send the payload. The public [older notification screenshots](https://sap-cx-actions.github.io/docs/commerce-cloud/notifications/) informed the heading, outcome, details, and action hierarchy. This Action uses provider-native Block Kit and Adaptive Cards with the smaller NotificationEvent v1 contract; it does not reproduce the old payloads or extra SAP fields.
  
  For a visual preview, paste the complete Slack payload into [Block Kit Builder](https://app.slack.com/block-kit-builder/) in message preview mode. The top-level context block and colored attachment should appear together. If its attachment editor requests only an attachment object, extract it with `pnpm --silent payload:preview --provider slack --event build-success | jq '.attachments[0]'`; that narrower view omits the top-level context. Paste only the Adaptive Card into the [Microsoft Adaptive Card Designer](https://adaptivecards.microsoft.com/designer): `pnpm --silent payload:preview --provider teams-workflow --event build-success | jq '.attachments[0].content'`. The designers show the layout, while live provider acceptance after merge uses the manual smoke workflow in [RELEASING.md](RELEASING.md).
@@ -15,6 +15,38 @@ index 63768d4..f2eaf20 100644
 +initiation, not physical removal. Existing notify releases using contract 0.0.3
 +reject cleanup events; do not configure consumers until compatible dependencies
 +and a tested immutable notify commit are available.
++
++Candidate build provenance: action-kit source commit
++[`05eb3240a036dd4afaf191921aa7bbb2ba4bf168`](https://github.com/commercekit-tools/action-kit/commit/05eb3240a036dd4afaf191921aa7bbb2ba4bf168),
++with exact packed package integrity
++`sha512-T+wt6X75QSHDpxHJDxqH797K1jO+YFKAbMLymqJ1rs78R0mWR8RT1bn53mwXviqAu7eO51YWMxm6CH6eW8iPtw==`.
++The dependent action-kit draft change must be reviewed and separately published
++before choosing and pinning a compatible registry version. The manifest and
++lockfile still pin published **0.0.3**, which does **not** support cleanup. The
++committed candidate bundle was generated from the exact unpublished package,
++so a normal registry-only rebuild and release remain **BLOCKED** until that pin
++is updated. No package version, registry lockfile, local dependency link, release,
++or provider delivery behavior was changed to hide this dependency gate.
+diff --git a/scripts/schema-check.mjs b/scripts/schema-check.mjs
+index 59ef088..21d27a9 100644
+--- a/scripts/schema-check.mjs
++++ b/scripts/schema-check.mjs
+@@ -21,6 +21,7 @@ for (const name of (await readdir(fixtures)).filter((name) => name.endsWith('.js
+ assert.deepEqual(
+   [...types].sort(),
+   [
++    'ccv2.build-cleanup.completed',
+     'check.completed',
+     'ccv2.build.started',
+     'ccv2.build.completed',
+@@ -30,4 +31,6 @@ assert.deepEqual(
+   ].sort(),
+ );
+ assert.deepEqual([...schema.properties.eventType.enum].sort(), [...types].sort());
+-console.log('Notification contract 0.0.3: public schema export, all fixtures and supported event types verified.');
++console.log(
++  'Notification contract cleanup candidate: public schema export, all fixtures and supported event types verified.',
++);
 diff --git a/src/presentation/create-presentation.ts b/src/presentation/create-presentation.ts
 index 2539914..62df898 100644
 --- a/src/presentation/create-presentation.ts
@@ -46,6 +78,287 @@ index 2539914..62df898 100644
    } else if (event.eventType.startsWith('ccv2.build.')) {
      category = 'CommerceKit · CCv2 build';
      title =
+diff --git a/tests/__snapshots__/fixtures.test.ts.snap b/tests/__snapshots__/fixtures.test.ts.snap
+index 3fdc059..3289824 100644
+--- a/tests/__snapshots__/fixtures.test.ts.snap
++++ b/tests/__snapshots__/fixtures.test.ts.snap
+@@ -2020,6 +2020,276 @@ exports[`golden synthetic events > validates and renders each supported event fi
+ }
+ `;
+ 
++exports[`golden synthetic events > validates and renders each supported event fixture deterministically > cleanup-success.json: Slack 1`] = `
++{
++  "attachments": [
++    {
++      "blocks": [
++        {
++          "text": {
++            "emoji": true,
++            "text": "✅ CCv2 build cleanup completed",
++            "type": "plain_text",
++          },
++          "type": "header",
++        },
++        {
++          "fields": [
++            {
++              "text": "*Mode*
++DRY RUN",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Occurred*
++2026-11-01 20:20:00 UTC",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++          ],
++          "type": "section",
++        },
++        {
++          "type": "divider",
++        },
++        {
++          "text": {
++            "emoji": true,
++            "text": "DRY RUN: 2 planned targets; 0 deletion requests accepted. Outcome: dry-run.",
++            "type": "plain_text",
++          },
++          "type": "section",
++        },
++        {
++          "fields": [
++            {
++              "text": "*Subscription*
++subscription-example",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Application*
++application-example",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Retention days*
++30",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Keep latest*
++10",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Planned*
++2",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Requests accepted*
++0",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Failed / unknown*
++0 / 0",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Deferred*
++2",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++            {
++              "text": "*Duration*
++1s",
++              "type": "mrkdwn",
++              "verbatim": true,
++            },
++          ],
++          "type": "section",
++        },
++        {
++          "elements": [
++            {
++              "action_id": "notification_action_0",
++              "text": {
++                "text": "View workflow",
++                "type": "plain_text",
++              },
++              "type": "button",
++              "url": "https://github.com/example-org/project/actions/runs/123456",
++            },
++          ],
++          "type": "actions",
++        },
++        {
++          "elements": [
++            {
++              "emoji": true,
++              "text": "CommerceKit CI · Run 123456",
++              "type": "plain_text",
++            },
++          ],
++          "type": "context",
++        },
++      ],
++      "color": "#168A45",
++    },
++  ],
++  "blocks": [
++    {
++      "elements": [
++        {
++          "emoji": false,
++          "text": "CommerceKit · CCv2 build cleanup · Succeeded",
++          "type": "plain_text",
++        },
++      ],
++      "type": "context",
++    },
++  ],
++  "mrkdwn": false,
++  "text": "Succeeded · CCv2 build cleanup completed · DRY RUN · https://github.com/example-org/project/actions/runs/123456 · DRY RUN: 2 planned targets; 0 deletion requests accepted. Outcome: dry-run.",
++  "unfurl_links": false,
++  "unfurl_media": false,
++}
++`;
++
++exports[`golden synthetic events > validates and renders each supported event fixture deterministically > cleanup-success.json: Teams Workflows 1`] = `
++{
++  "attachments": [
++    {
++      "content": {
++        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
++        "actions": [
++          {
++            "title": "View workflow",
++            "type": "Action.OpenUrl",
++            "url": "https://github.com/example-org/project/actions/runs/123456",
++          },
++        ],
++        "body": [
++          {
++            "items": [
++              {
++                "size": "Small",
++                "text": "CommerceKit · CCv2 build cleanup · ✅ Succeeded",
++                "type": "TextBlock",
++                "weight": "Bolder",
++                "wrap": true,
++              },
++              {
++                "size": "Large",
++                "spacing": "Medium",
++                "text": "CCv2 build cleanup completed",
++                "type": "TextBlock",
++                "weight": "Bolder",
++                "wrap": true,
++              },
++              {
++                "spacing": "Medium",
++                "text": "DRY RUN: 2 planned targets; 0 deletion requests accepted. Outcome: dry-run.",
++                "type": "TextBlock",
++                "wrap": true,
++              },
++            ],
++            "style": "good",
++            "type": "Container",
++          },
++          {
++            "facts": [
++              {
++                "title": "Mode",
++                "value": "DRY RUN",
++              },
++              {
++                "title": "Occurred",
++                "value": "2026-11-01 20:20:00 UTC",
++              },
++            ],
++            "spacing": "Medium",
++            "type": "FactSet",
++          },
++          {
++            "items": [
++              {
++                "facts": [
++                  {
++                    "title": "Subscription",
++                    "value": "subscription-example",
++                  },
++                  {
++                    "title": "Application",
++                    "value": "application-example",
++                  },
++                  {
++                    "title": "Retention days",
++                    "value": "30",
++                  },
++                  {
++                    "title": "Keep latest",
++                    "value": "10",
++                  },
++                  {
++                    "title": "Planned",
++                    "value": "2",
++                  },
++                  {
++                    "title": "Requests accepted",
++                    "value": "0",
++                  },
++                  {
++                    "title": "Failed / unknown",
++                    "value": "0 / 0",
++                  },
++                  {
++                    "title": "Deferred",
++                    "value": "2",
++                  },
++                  {
++                    "title": "Duration",
++                    "value": "1s",
++                  },
++                ],
++                "type": "FactSet",
++              },
++            ],
++            "spacing": "Medium",
++            "style": "emphasis",
++            "type": "Container",
++          },
++          {
++            "isSubtle": true,
++            "size": "Small",
++            "spacing": "Medium",
++            "text": "CommerceKit CI · Run 123456",
++            "type": "TextBlock",
++            "wrap": true,
++          },
++        ],
++        "type": "AdaptiveCard",
++        "version": "1.2",
++      },
++      "contentType": "application/vnd.microsoft.card.adaptive",
++      "contentUrl": null,
++    },
++  ],
++  "type": "message",
++}
++`;
++
+ exports[`golden synthetic events > validates and renders each supported event fixture deterministically > deployment-action-required.json: Slack 1`] = `
+ {
+   "attachments": [
 diff --git a/tests/cleanup.test.ts b/tests/cleanup.test.ts
 new file mode 100644
 index 0000000..219da79
@@ -91,3 +404,70 @@ index 0000000..219da79
 +        expect(JSON.stringify(renderTeams(p))).toContain('CCv2 build cleanup');
 +      });
 +});
+diff --git a/tests/fixtures.test.ts b/tests/fixtures.test.ts
+index 802956f..982bdf9 100644
+--- a/tests/fixtures.test.ts
++++ b/tests/fixtures.test.ts
+@@ -7,6 +7,7 @@ import { renderTeams } from '../src/providers/teams-workflow/render.js';
+ import { theme } from '../src/presentation/theme.js';
+ 
+ const titles: Record<string, string> = {
++  'cleanup-success': 'CCv2 build cleanup completed',
+   'check-success': 'CommerceKit check succeeded',
+   'check-warning': 'CommerceKit check completed with warnings',
+   'check-failure': 'CommerceKit check failed',
+@@ -29,7 +30,7 @@ describe('golden synthetic events', () => {
+     const names = (await readdir(new URL('./fixtures/events/', import.meta.url)))
+       .filter((n) => n.endsWith('.json'))
+       .sort();
+-    expect(names).toHaveLength(16);
++    expect(names).toHaveLength(17);
+     for (const name of names) {
+       const event = JSON.parse(await readFile(new URL(`./fixtures/events/${name}`, import.meta.url), 'utf8'));
+       validateEvent(event);
+diff --git a/tests/fixtures/events/cleanup-success.json b/tests/fixtures/events/cleanup-success.json
+new file mode 100644
+index 0000000..84086d3
+--- /dev/null
++++ b/tests/fixtures/events/cleanup-success.json
+@@ -0,0 +1,40 @@
++{
++  "schemaVersion": 1,
++  "eventId": "ckevt_example_cleanup_success",
++  "occurredAt": "2026-11-01T20:20:00.000Z",
++  "eventType": "ccv2.build-cleanup.completed",
++  "status": "success",
++  "source": {
++    "product": "commercekit",
++    "component": "ccv2-build-cleanup"
++  },
++  "context": {
++    "repository": "example-org/project",
++    "workflow": "CommerceKit CI",
++    "runId": "123456",
++    "runUrl": "https://github.com/example-org/project/actions/runs/123456"
++  },
++  "links": [
++    {
++      "label": "View workflow",
++      "url": "https://github.com/example-org/project/actions/runs/123456"
++    }
++  ],
++  "data": {
++    "mode": "dry-run",
++    "subscriptionCode": "subscription-example",
++    "applicationCode": "application-example",
++    "retentionDays": 30,
++    "keepLatest": 10,
++    "cleanupStatus": "dry-run",
++    "scannedCount": 20,
++    "eligibleCount": 4,
++    "plannedCount": 2,
++    "deletionRequestedCount": 0,
++    "skippedCount": 20,
++    "failedCount": 0,
++    "unknownCount": 0,
++    "deferredCount": 2,
++    "durationMs": 1000
++  }
++}

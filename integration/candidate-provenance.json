@@ -8,12 +8,12 @@
   "tarballIntegrity": "sha512-T+wt6X75QSHDpxHJDxqH797K1jO+YFKAbMLymqJ1rs78R0mWR8RT1bn53mwXviqAu7eO51YWMxm6CH6eW8iPtw==",
   "patches": {
     "action-kit-cleanup-event.patch": "28f68d098ab1c5d88308fa2d6a46ca7f40c04710d6bf4c4875b9de95d4f2ae25",
-    "notify-cleanup-renderer.patch": "6a6be9a81ecdf65d4b54cbdaff8b2b75fd72400a6951ae846282dd199e533796",
+    "notify-cleanup-renderer.patch": "f932fd383bb1ff40daa95669b693700844d868ded1dff2552a74ab771c0a09a7",
     "sandbox-cleanup.patch": "181e9949ebbcb38770b38fe7d918e03474aeec70023dd9bf5e978c3e2b673f57"
   },
   "validation": {
     "actionKit": "277 tests passed; typecheck passed",
-    "notify": "88 tests passed against final candidate tarball; typecheck passed; candidate bundle generated",
+    "notify": "88 tests; typecheck, schema parity with 17 fixtures, golden provider snapshots, lint, format, public scan and candidate bundle passed; normal registry rebuild blocked until compatible publication",
     "cleanupAdapter": "17 tests passed; 100% statement/branch/function/line coverage against exact candidate tarball",
     "combinedCleanup": "301 tests passed, no skipped; 100% all coverage metrics including real local bundle E2E",
     "automatedPreparation": "PASS: verified base, patch, frozen install, contract build, full typecheck, 277 action-kit tests, npm pack, isolated tarball install",
@@ -24,7 +24,7 @@
     "action-kit candidate: feat/build-cleanup-event",
     "notify candidate: feat/build-cleanup-event"
   ],
-  "commitsCreated": false,
+  "commitsCreated": true,
   "publicationPerformed": false,
   "coverage": {
     "actionKit": {
@@ -49,5 +49,26 @@
   "sandboxBaseSha": "ec545e81f0d3f7151572d925905ebdabe84d8f47",
   "sandboxCandidateSha": "04fe32f7b1233eb6f080bf8debd47c54c371c8a7",
   "normalCleanupBundleSha256": "dd19eb9a0fd22bf45e0c863deefff6a3bbcd684d866f1e53dfbce6b8a1ee23f1",
-  "candidateCleanupBundleSha256": "5fc2da5c1e907d3e77433ac1bf5b1a9f67970c59d829307a9202a070ead70e39"
+  "candidateCleanupBundleSha256": "5fc2da5c1e907d3e77433ac1bf5b1a9f67970c59d829307a9202a070ead70e39",
+  "pushedBranches": {
+    "cleanup": {
+      "branch": "feat/initial-cleanup",
+      "sha": "37d560786d9b119206a24ddf83158b3cc1994fbd"
+    },
+    "actionKit": {
+      "branch": "feat/build-cleanup-event",
+      "sha": "05eb3240a036dd4afaf191921aa7bbb2ba4bf168"
+    },
+    "notify": {
+      "branch": "feat/build-cleanup-event",
+      "sha": "604884949dbcc99b8789dbabd2ae38931afa653f",
+      "baseSha": "8242af6a4aaafd7917c93f0db27f1794266efeee"
+    },
+    "sandbox": {
+      "branch": "feat/build-cleanup-scenarios",
+      "sha": "5ded738ccab77f640ce40714d1d3bec77b1285c8",
+      "baseSha": "a787e4b07c487a8a4833541f7f7d8bd4afd9fef4"
+    }
+  },
+  "notifyCandidateBundleSha256": "34f62a8fc04ea7641e9812923f9890727e085e52fcde7bdccca55006cb47abe7"
 }

@@ -1,5 +1,58 @@
 # Validation report
 
+## Post-merge verification after PR #5 — 2026-11-14
+
+**PASS:** [PR #5](https://github.com/commercekit-tools/ccv2-build-cleanup/pull/5)
+merged at **18:36:45 UTC** as
+`1e6eb8c5290572b55aa95a98c17ae45405572d64`. Both subsequent **push** workflows
+completed successfully on that exact `refs/heads/main` commit:
+
+| Check                       | Final evidence                                                                                                                | Job completion (UTC) |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `validate`                  | [Run 43627573533](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43627573533), job `132546792058`, PASS | 2026-11-14 18:37:37  |
+| CodeQL workflow / `analyze` | [Run 43627573615](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43627573615), job `132546792431`, PASS | 2026-11-14 18:38:06  |
+
+The main validation log confirms **300/300 tests in 14/14 files, zero skipped,
+and 100% statement/branch/function/line coverage**. Frozen package installation,
+format/lint/strict types, local sandbox E2E, committed-bundle consistency,
+metadata/actionlint, public scan and full dependency audit passed; the audit
+reports **no known vulnerabilities**. The actual local-action handled-failure
+step emitted a valid published-contract cleanup event with status=failure,
+mode=dry-run and deletionRequestedCount=0, naming this exact main commit/run.
+
+Processed CodeQL main analysis **2168340046**, created at **18:37:44 UTC**,
+records the same commit/ref, **87 rules, zero results, and empty error/warning
+fields**. Successful SARIF upload is present in the run log; the open-alert query
+scoped to main returned an empty list. CodeQL workflow completion was updated at
+18:38:07 UTC; the table records its job completion instead.
+
+**PASS — protection remains enforced:** a fresh read-back after PR #5 confirms
+`protected=true`, exactly these required app-bound contexts:
+
+- `validate` from GitHub Actions, app **15368**.
+- `CodeQL` from GitHub Advanced Security, app **57789**.
+
+Up-to-date checks (`strict=true`) and administrator enforcement remain enabled;
+force pushes and branch deletion remain disabled. No protection settings were
+changed during this verification. The required PR context `CodeQL` is distinct
+from the workflow's `analyze` job; both the main workflow and processed analysis
+were verified above. See [release-readiness.md](release-readiness.md) for the
+complete policy and verification commands.
+
+Evidence was read using `gh run list/view` (JSON metadata and logs), commit
+`check-runs`, code-scanning analyses/open-alert APIs, and branch/protection GETs.
+Independent review reproduced the results. This documentation follow-up changes
+only the report; `pnpm format:check`, `pnpm scan:public` and `git diff --check`
+verify the update, with normal required PR checks before merge.
+
+**Remaining blockers are unchanged:** authoritative SAP four-hour eligibility
+evidence, operational protection review, separately authorized non-production
+validation, owner release/consumer approval and fork package-access limitations.
+The production eligibility gate remains closed. Hosted sandbox/live webhook and
+real SAP validation remain unexecuted as detailed below. This verification
+publishes no package, creates no tag, deploys nothing and does not enable or
+perform real SAP deletion.
+
 ## Published notification-contract adoption and post-merge verification — 2026-11-14
 
 Status vocabulary: PASS, FAIL, BLOCKED, NOT RUN. This report records the current

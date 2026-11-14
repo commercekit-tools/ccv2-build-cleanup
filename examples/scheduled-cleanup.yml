@@ -1,0 +1,56 @@
+name: Weekly CCv2 build cleanup
+on:
+  schedule:
+    - cron: "17 3 * * 0" # Sundays 03:17 UTC; GitHub may delay scheduled runs.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview without deleting
+        type: boolean
+        default: true
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: ccv2-cleanup-${{ vars.CCV2_SUBSCRIPTION_CODE }}
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Optionally attach a configured environment with approval rules:
+    # environment: non-production
+    steps:
+      - name: Compute fail-closed cleanup mode
+        id: mode
+        env:
+          ENABLE_DELETION: ${{ vars.CCV2_CLEANUP_ENABLE_DELETION }}
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_DRY_RUN_JSON: ${{ toJSON(inputs.dry_run) }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const enabled = process.env.ENABLE_DELETION === 'true';
+          const schedule = process.env.EVENT_NAME === 'schedule';
+          const explicitManualApply = process.env.EVENT_NAME === 'workflow_dispatch' && process.env.MANUAL_DRY_RUN_JSON === 'false';
+          const dryRun = !(enabled && (schedule || explicitManualApply));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `dry_run=${dryRun}\n`);
+          NODE
+      # Immutable unreleased implementation commit, validated locally.
+      # SAP eligibility and notification publication gates remain blocked.
+      - uses: commercekit-tools/ccv2-build-cleanup@29d454c1d0ff02a3619d325936ae00c2bc94a3a7
+        id: cleanup
+        with:
+          token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}
+          client-id: ${{ secrets.CCV2_CLIENT_ID }}
+          client-secret: ${{ secrets.CCV2_CLIENT_SECRET }}
+          resource: ${{ secrets.CCV2_RESOURCE }}
+          subscription-code: ${{ vars.CCV2_SUBSCRIPTION_CODE }}
+          application-code: ${{ vars.CCV2_APPLICATION_CODE }}
+          # Use the default API origin unless an explicit HTTPS origin is needed.
+          # Fail closed: only literal enablement and recognized event/input permit apply.
+          dry-run: ${{ steps.mode.outputs.dry_run }}
+          retention-days: "30"
+          keep-latest: "10"
+          max-deletions: "20"
+          timeout-minutes: "15"

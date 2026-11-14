@@ -1,0 +1,369 @@
+diff --git a/packages/notification-contract/README.md b/packages/notification-contract/README.md
+index 1a7a899..c504d13 100644
+--- a/packages/notification-contract/README.md
++++ b/packages/notification-contract/README.md
+@@ -33,3 +33,14 @@ Version 0.0.3 adds `stripAngleBracketText(value: string): string` and `redactJwt
+ The first removes angle brackets and all text between each opening bracket and the next closing bracket, discarding an unclosed suffix. It neither parses HTML nor removes script text or decodes entities. The second replaces the existing Build/Deploy `eyJ`-prefixed three-segment token shape with `[REDACTED]`; it does not verify tokens or detect every credential. Both preserve unrelated characters and impose no length bound.
+ 
+ These are opt-in primitives: existing sanitizers/factories do not call them automatically. Consumers retain secret registration, ordering, text bounds, fallback labels and provider escaping. See the [remaining extraction audit](../../docs/remaining-extraction-audit.md) for compatibility evidence and rollout.
++
++## Candidate cleanup event (unpublished)
++
++`createBuildCleanupEvent` creates `ccv2.build-cleanup.completed`. Its data contains
++mode, scope, retention policy, outcome, bounded counts, duration, and an optional
++safe error. A successful `deletionRequestedCount` represents accepted deletion
++initiation, never confirmed physical removal. Status uses the existing completed
++status vocabulary. Producers must sanitize identifiers and errors before creating
++an event. This additive candidate requires a compatible notify renderer; notify
++versions using the published 0.0.3 contract reject this new event. Publication and
++consumer pin updates require separate authorization.
+diff --git a/packages/notification-contract/schema/notification-event-v1.schema.json b/packages/notification-contract/schema/notification-event-v1.schema.json
+index 34ed082..06c0689 100644
+--- a/packages/notification-contract/schema/notification-event-v1.schema.json
++++ b/packages/notification-contract/schema/notification-event-v1.schema.json
+@@ -14,7 +14,8 @@
+         "ccv2.build.completed",
+         "ccv2.deployment.started",
+         "ccv2.deployment.action-required",
+-        "ccv2.deployment.completed"
++        "ccv2.deployment.completed",
++        "ccv2.build-cleanup.completed"
+       ]
+     },
+     "status": {
+@@ -26,7 +27,7 @@
+       "required": ["product", "component"],
+       "properties": {
+         "product": { "const": "commercekit" },
+-        "component": { "enum": ["cli-check", "ccv2-build", "ccv2-deploy", "workflow"] },
++        "component": { "enum": ["cli-check", "ccv2-build", "ccv2-deploy", "workflow", "ccv2-build-cleanup"] },
+         "version": { "type": "string", "maxLength": 64 }
+       },
+       "additionalProperties": true
+@@ -109,6 +110,15 @@
+           "data": { "$ref": "#/$defs/deployment" }
+         }
+       }
++    },
++    {
++      "if": { "properties": { "eventType": { "const": "ccv2.build-cleanup.completed" } } },
++      "then": {
++        "properties": {
++          "status": { "enum": ["success", "failure", "cancelled", "internal-error"] },
++          "data": { "$ref": "#/$defs/cleanup" }
++        }
++      }
+     }
+   ],
+   "$defs": {
+@@ -165,6 +175,44 @@
+         "error": { "$ref": "#/$defs/error" }
+       },
+       "additionalProperties": true
++    },
++    "cleanup": {
++      "type": "object",
++      "required": [
++        "mode",
++        "subscriptionCode",
++        "retentionDays",
++        "keepLatest",
++        "cleanupStatus",
++        "scannedCount",
++        "eligibleCount",
++        "plannedCount",
++        "deletionRequestedCount",
++        "skippedCount",
++        "failedCount",
++        "unknownCount",
++        "deferredCount",
++        "durationMs"
++      ],
++      "properties": {
++        "mode": { "enum": ["dry-run", "apply"] },
++        "subscriptionCode": { "type": "string", "minLength": 1, "maxLength": 128 },
++        "applicationCode": { "type": "string", "minLength": 1, "maxLength": 128 },
++        "retentionDays": { "type": "integer", "minimum": 1, "maximum": 36500 },
++        "keepLatest": { "type": "integer", "minimum": 1, "maximum": 10000 },
++        "cleanupStatus": { "type": "string", "minLength": 1, "maxLength": 100 },
++        "scannedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "eligibleCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "plannedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "deletionRequestedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "skippedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "failedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "unknownCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "deferredCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "durationMs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
++        "error": { "$ref": "#/$defs/error" }
++      },
++      "additionalProperties": true
+     }
+   },
+   "additionalProperties": true
+diff --git a/packages/notification-contract/src/factories.ts b/packages/notification-contract/src/factories.ts
+index 5f0a877..1b3732b 100644
+--- a/packages/notification-contract/src/factories.ts
++++ b/packages/notification-contract/src/factories.ts
+@@ -3,6 +3,8 @@ import { schema } from './schema.js';
+ import { validateNotificationEvent } from './validate.js';
+ import { extractSafeGitHubContext, mergeProducerContext } from './context.js';
+ import type {
++  BuildCleanupEvent,
++  BuildCleanupEventData,
+   NotificationContext,
+   NotificationLink,
+   NotificationSource,
+@@ -21,7 +23,12 @@ interface Options {
+   env?: Readonly<Record<string, string | undefined>>;
+   links?: NotificationLink[];
+ }
+-function create(kind: 'check' | 'build' | 'deployment', status: string, data: object, options: Options) {
++function create(
++  kind: 'check' | 'build' | 'deployment' | 'cleanup',
++  status: string,
++  data: object,
++  options: Options,
++) {
+   const allowed = Object.keys(schema.$defs[kind].properties);
+   const selected = Object.fromEntries(Object.entries(data).filter(([key]) => allowed.includes(key)));
+   if (selected.error && typeof selected.error === 'object') {
+@@ -29,9 +36,11 @@ function create(kind: 'check' | 'build' | 'deployment', status: string, data: ob
+     selected.error = { ...(e.code !== undefined ? { code: e.code } : {}), message: e.message };
+   }
+   const eventType =
+-    kind === 'check'
+-      ? 'check.completed'
+-      : `ccv2.${kind}.${status === 'started' ? 'started' : status === 'action-required' ? 'action-required' : 'completed'}`;
++    kind === 'cleanup'
++      ? 'ccv2.build-cleanup.completed'
++      : kind === 'check'
++        ? 'check.completed'
++        : `ccv2.${kind}.${status === 'started' ? 'started' : status === 'action-required' ? 'action-required' : 'completed'}`;
+   return validateNotificationEvent({
+     schemaVersion: 1,
+     eventId: options.eventId ?? `ckevt_${randomUUID()}`,
+@@ -46,7 +55,12 @@ function create(kind: 'check' | 'build' | 'deployment', status: string, data: ob
+         }
+       : {
+           product: 'commercekit',
+-          component: kind === 'check' ? 'cli-check' : `ccv2-${kind === 'deployment' ? 'deploy' : 'build'}`,
++          component:
++            kind === 'cleanup'
++              ? 'ccv2-build-cleanup'
++              : kind === 'check'
++                ? 'cli-check'
++                : `ccv2-${kind === 'deployment' ? 'deploy' : 'build'}`,
+         },
+     context: mergeProducerContext(options.context ?? {}, extractSafeGitHubContext(options.env ?? {})),
+     data: selected,
+@@ -66,3 +80,9 @@ export function createDeploymentEvent(
+ ): DeploymentEvent {
+   return create('deployment', input.status, input.data, input) as DeploymentEvent;
+ }
++
++export function createBuildCleanupEvent(
++  input: Options & { status: BuildCleanupEvent['status']; data: BuildCleanupEventData },
++): BuildCleanupEvent {
++  return create('cleanup', input.status, input.data, input) as BuildCleanupEvent;
++}
+diff --git a/packages/notification-contract/src/schema.ts b/packages/notification-contract/src/schema.ts
+index fae54ef..70024f3 100644
+--- a/packages/notification-contract/src/schema.ts
++++ b/packages/notification-contract/src/schema.ts
+@@ -16,6 +16,7 @@ export const schema = {
+         'ccv2.deployment.started',
+         'ccv2.deployment.action-required',
+         'ccv2.deployment.completed',
++        'ccv2.build-cleanup.completed',
+       ],
+     },
+     status: {
+@@ -27,7 +28,7 @@ export const schema = {
+       required: ['product', 'component'],
+       properties: {
+         product: { const: 'commercekit' },
+-        component: { enum: ['cli-check', 'ccv2-build', 'ccv2-deploy', 'workflow'] },
++        component: { enum: ['cli-check', 'ccv2-build', 'ccv2-deploy', 'workflow', 'ccv2-build-cleanup'] },
+         version: { type: 'string', maxLength: 64 },
+       },
+       additionalProperties: true,
+@@ -109,6 +110,15 @@ export const schema = {
+         },
+       },
+     },
++    {
++      if: { properties: { eventType: { const: 'ccv2.build-cleanup.completed' } } },
++      then: {
++        properties: {
++          status: { enum: ['success', 'failure', 'cancelled', 'internal-error'] },
++          data: { $ref: '#/$defs/cleanup' },
++        },
++      },
++    },
+   ],
+   $defs: {
+     error: {
+@@ -165,6 +175,44 @@ export const schema = {
+       },
+       additionalProperties: true,
+     },
++    cleanup: {
++      type: 'object',
++      required: [
++        'mode',
++        'subscriptionCode',
++        'retentionDays',
++        'keepLatest',
++        'cleanupStatus',
++        'scannedCount',
++        'eligibleCount',
++        'plannedCount',
++        'deletionRequestedCount',
++        'skippedCount',
++        'failedCount',
++        'unknownCount',
++        'deferredCount',
++        'durationMs',
++      ],
++      properties: {
++        mode: { enum: ['dry-run', 'apply'] },
++        subscriptionCode: { type: 'string', minLength: 1, maxLength: 128 },
++        applicationCode: { type: 'string', minLength: 1, maxLength: 128 },
++        retentionDays: { type: 'integer', minimum: 1, maximum: 36500 },
++        keepLatest: { type: 'integer', minimum: 1, maximum: 10000 },
++        cleanupStatus: { type: 'string', minLength: 1, maxLength: 100 },
++        scannedCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        eligibleCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        plannedCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        deletionRequestedCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        skippedCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        failedCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        unknownCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        deferredCount: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        durationMs: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
++        error: { $ref: '#/$defs/error' },
++      },
++      additionalProperties: true,
++    },
+   },
+   additionalProperties: true,
+ } as const;
+diff --git a/packages/notification-contract/src/types.ts b/packages/notification-contract/src/types.ts
+index 93ebea7..4d759f1 100644
+--- a/packages/notification-contract/src/types.ts
++++ b/packages/notification-contract/src/types.ts
+@@ -2,6 +2,7 @@ export type NotificationStatus =
+   'started' | 'success' | 'warning' | 'failure' | 'cancelled' | 'internal-error' | 'action-required';
+ export type CompletedStatus = 'success' | 'failure' | 'cancelled' | 'internal-error';
+ export type NotificationEventType =
++  | 'ccv2.build-cleanup.completed'
+   | 'check.completed'
+   | 'ccv2.build.started'
+   | 'ccv2.build.completed'
+@@ -10,7 +11,7 @@ export type NotificationEventType =
+   | 'ccv2.deployment.action-required';
+ export interface NotificationSource {
+   product: 'commercekit';
+-  component: 'cli-check' | 'ccv2-build' | 'ccv2-deploy' | 'workflow';
++  component: 'cli-check' | 'ccv2-build' | 'ccv2-deploy' | 'ccv2-build-cleanup' | 'workflow';
+   version?: string;
+ }
+ export interface NotificationContext {
+@@ -94,4 +95,28 @@ export type DeploymentEvent = EventBase &
+     | { eventType: 'ccv2.deployment.completed'; status: CompletedStatus }
+     | { eventType: 'ccv2.deployment.action-required'; status: 'action-required' }
+   ) & { data: DeploymentEventData };
+-export type NotificationEvent = CheckEvent | BuildEvent | DeploymentEvent;
++export type NotificationEvent = CheckEvent | BuildEvent | DeploymentEvent | BuildCleanupEvent;
++
++export interface BuildCleanupEventData {
++  mode: 'dry-run' | 'apply';
++  subscriptionCode: string;
++  applicationCode?: string;
++  retentionDays: number;
++  keepLatest: number;
++  cleanupStatus: string;
++  scannedCount: number;
++  eligibleCount: number;
++  plannedCount: number;
++  deletionRequestedCount: number;
++  skippedCount: number;
++  failedCount: number;
++  unknownCount: number;
++  deferredCount: number;
++  durationMs: number;
++  error?: SafeNotificationError;
++}
++export type BuildCleanupEvent = EventBase & {
++  eventType: 'ccv2.build-cleanup.completed';
++  status: CompletedStatus;
++  data: BuildCleanupEventData;
++};
+diff --git a/packages/notification-contract/tests/cleanup.test.ts b/packages/notification-contract/tests/cleanup.test.ts
+new file mode 100644
+index 0000000..1e1975c
+--- /dev/null
++++ b/packages/notification-contract/tests/cleanup.test.ts
+@@ -0,0 +1,61 @@
++import { describe, expect, it } from 'vitest';
++import { createBuildCleanupEvent, validateNotificationEvent } from '../src/index.js';
++const data = {
++  mode: 'dry-run' as const,
++  subscriptionCode: 'test-subscription',
++  retentionDays: 30,
++  keepLatest: 10,
++  cleanupStatus: 'dry-run',
++  scannedCount: 20,
++  eligibleCount: 4,
++  plannedCount: 2,
++  deletionRequestedCount: 0,
++  skippedCount: 16,
++  failedCount: 0,
++  unknownCount: 0,
++  deferredCount: 2,
++  durationMs: 1200,
++};
++describe('cleanup event', () => {
++  for (const status of ['success', 'failure', 'cancelled', 'internal-error'] as const)
++    it(`creates and validates ${status}`, () => {
++      const event = createBuildCleanupEvent({
++        status,
++        data,
++        env: { GITHUB_REPOSITORY: 'test/repo', GITHUB_RUN_ID: '42' },
++      });
++      expect(event.eventType).toBe('ccv2.build-cleanup.completed');
++      expect(event.source.component).toBe('ccv2-build-cleanup');
++      expect(event.data).toEqual(data);
++      expect(event.context?.runUrl).toBe('https://github.com/test/repo/actions/runs/42');
++      expect(validateNotificationEvent(event)).toBe(event);
++    });
++  for (const patch of [
++    { mode: 'truthy' },
++    { subscriptionCode: '' },
++    { keepLatest: 0 },
++    { retentionDays: -1 },
++    { failedCount: 0.5 },
++    { durationMs: Number.MAX_SAFE_INTEGER + 1 },
++    { cleanupStatus: 'x'.repeat(101) },
++  ])
++    it(`rejects invalid cleanup data ${JSON.stringify(patch)}`, () => {
++      const event = createBuildCleanupEvent({ status: 'success', data });
++      expect(() => validateNotificationEvent({ ...event, data: { ...data, ...patch } })).toThrow(
++        'Invalid NotificationEvent',
++      );
++    });
++  it('rejects non-completed status and missing fields', () => {
++    const event = createBuildCleanupEvent({ status: 'success', data });
++    expect(() => validateNotificationEvent({ ...event, status: 'warning' })).toThrow();
++    expect(() => validateNotificationEvent({ ...event, data: {} })).toThrow();
++  });
++  it('projects data and safe error fields', () => {
++    const event = createBuildCleanupEvent({
++      status: 'failure',
++      data: { ...data, error: { code: 'FAIL', message: 'Safe', raw: 'secret' }, raw: 'secret' },
++    } as Parameters<typeof createBuildCleanupEvent>[0]);
++    expect(event.data).not.toHaveProperty('raw');
++    expect(event.data.error).toEqual({ code: 'FAIL', message: 'Safe' });
++  });
++});

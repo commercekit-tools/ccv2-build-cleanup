@@ -1,0 +1,105 @@
+name: Validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    name: validate
+    permissions:
+      contents: read
+      packages: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; verified via GitHub API
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; verified via GitHub API
+        with:
+          node-version-file: .node-version
+          registry-url: https://npm.pkg.github.com
+          scope: "@commercekit-tools"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: commercekit-tools/action-kit
+          ref: 9aeded72cf1faaf4441a24ff8c9510daab06e2ca
+          path: .integration/action-kit
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: commercekit-tools/sandbox
+          ref: ec545e81f0d3f7151572d925905ebdabe84d8f47
+          path: .integration/sandbox
+          persist-credentials: false
+      - name: Prepare unpublished contract candidate in isolation
+        run: node integration/prepare-candidate.mjs
+        env:
+          CLEANUP_ACTION_KIT_PATH: ${{ github.workspace }}/.integration/action-kit
+      - name: Prepare existing local sandbox candidate
+        working-directory: .integration/sandbox
+        run: |
+          git apply ../../integration/sandbox-cleanup.patch
+          pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+        env:
+          CLEANUP_SANDBOX_PATH: ${{ github.workspace }}/.integration/sandbox
+      - name: Bundle exact-source notification candidate in isolation
+        run: node integration/build-candidate-bundle.mjs
+        env:
+          CLEANUP_CANDIDATE_BUNDLE_FILE: ${{ runner.temp }}/candidate-bundle-path
+      - name: Validate actual candidate bundle event against local sandbox
+        env:
+          CLEANUP_SANDBOX_PATH: ${{ github.workspace }}/.integration/sandbox
+          CLEANUP_BUNDLE_PATH_FILE: ${{ runner.temp }}/candidate-bundle-path
+        run: |
+          CLEANUP_ACTION_BUNDLE="$(cat "$CLEANUP_BUNDLE_PATH_FILE")"
+          export CLEANUP_ACTION_BUNDLE
+          export CLEANUP_EVENT_CONTRACT_PATH="$CLEANUP_CANDIDATE_PACKAGE/dist/index.js"
+          node scripts/sandbox/local-e2e.mjs
+      - run: pnpm bundle:check
+      - run: pnpm metadata:check
+      - name: Lint action workflows with verified actionlint binary
+        run: |
+          curl --fail --silent --show-error --location --output "$RUNNER_TEMP/actionlint.tar.gz" https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          printf '%s  %s\n' '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8' "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/*.yml examples/*.yml
+      - run: pnpm scan:public
+      - run: pnpm audit
+      - name: Build bundle
+        run: pnpm bundle
+      - name: Verify actual local action on invalid input without secrets
+        uses: ./
+        id: local-action
+        continue-on-error: true
+        with:
+          token-endpoint: https://invalid.example.test/token
+          client-id: synthetic-validation-client
+          client-secret: synthetic-validation-secret
+          resource: synthetic-validation-resource
+          subscription-code: synthetic-validation-subscription
+          retention-days: malformed
+          dry-run: "true"
+      - name: Verify handled failure outputs
+        env:
+          CLEANUP_STATUS: ${{ steps.local-action.outputs.cleanup-status }}
+          CLEANUP_DRY_RUN: ${{ steps.local-action.outputs.dry-run }}
+          CLEANUP_ACCEPTED: ${{ steps.local-action.outputs.deletion-requested-count }}
+        run: |
+          test "$CLEANUP_STATUS" = failed
+          test "$CLEANUP_DRY_RUN" = true
+          test "$CLEANUP_ACCEPTED" = 0

@@ -1,0 +1,21 @@
+name: Preview CCv2 retention
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ccv2-cleanup-${{ vars.CCV2_SUBSCRIPTION_CODE }}
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: commercekit-tools/ccv2-build-cleanup@REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA
+        with:
+          token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}
+          client-id: ${{ secrets.CCV2_CLIENT_ID }}
+          client-secret: ${{ secrets.CCV2_CLIENT_SECRET }}
+          resource: ${{ secrets.CCV2_RESOURCE }}
+          subscription-code: ${{ vars.CCV2_SUBSCRIPTION_CODE }}
+          dry-run: "true"

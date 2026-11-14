@@ -1,0 +1,53 @@
+{
+  "status": "CANDIDATE ONLY - publication/release blocked",
+  "actionKitBaseSha": "9aeded72cf1faaf4441a24ff8c9510daab06e2ca",
+  "notifyBaseSha": "5823c40c70a7daa83112a52a4de29569fe3d9bb0",
+  "packageName": "@commercekit-tools/notification-contract",
+  "sourceManifestVersion": "0.0.3",
+  "registryVersion": "0.0.3 does not include candidate helper",
+  "tarballIntegrity": "sha512-T+wt6X75QSHDpxHJDxqH797K1jO+YFKAbMLymqJ1rs78R0mWR8RT1bn53mwXviqAu7eO51YWMxm6CH6eW8iPtw==",
+  "patches": {
+    "action-kit-cleanup-event.patch": "28f68d098ab1c5d88308fa2d6a46ca7f40c04710d6bf4c4875b9de95d4f2ae25",
+    "notify-cleanup-renderer.patch": "6a6be9a81ecdf65d4b54cbdaff8b2b75fd72400a6951ae846282dd199e533796",
+    "sandbox-cleanup.patch": "181e9949ebbcb38770b38fe7d918e03474aeec70023dd9bf5e978c3e2b673f57"
+  },
+  "validation": {
+    "actionKit": "277 tests passed; typecheck passed",
+    "notify": "88 tests passed against final candidate tarball; typecheck passed; candidate bundle generated",
+    "cleanupAdapter": "17 tests passed; 100% statement/branch/function/line coverage against exact candidate tarball",
+    "combinedCleanup": "301 tests passed, no skipped; 100% all coverage metrics including real local bundle E2E",
+    "automatedPreparation": "PASS: verified base, patch, frozen install, contract build, full typecheck, 277 action-kit tests, npm pack, isolated tarball install",
+    "candidateBundle": "PASS actual separate bundle with exact packed candidate event validation and zero target mutations"
+  },
+  "upstreamWorkingTrees": "unchanged; edits only in isolated /private/tmp candidate clones",
+  "branches": [
+    "action-kit candidate: feat/build-cleanup-event",
+    "notify candidate: feat/build-cleanup-event"
+  ],
+  "commitsCreated": false,
+  "publicationPerformed": false,
+  "coverage": {
+    "actionKit": {
+      "statements": 99.65,
+      "branches": 99.1,
+      "functions": 97.91,
+      "lines": 100
+    },
+    "notify": {
+      "statements": 97.59,
+      "branches": 89.23,
+      "functions": 97.5,
+      "lines": 99.23
+    },
+    "cleanupCandidateAdapter": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    }
+  },
+  "sandboxBaseSha": "ec545e81f0d3f7151572d925905ebdabe84d8f47",
+  "sandboxCandidateSha": "04fe32f7b1233eb6f080bf8debd47c54c371c8a7",
+  "normalCleanupBundleSha256": "dd19eb9a0fd22bf45e0c863deefff6a3bbcd684d866f1e53dfbce6b8a1ee23f1",
+  "candidateCleanupBundleSha256": "5fc2da5c1e907d3e77433ac1bf5b1a9f67970c59d829307a9202a070ead70e39"
+}

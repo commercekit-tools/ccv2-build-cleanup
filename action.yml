@@ -1,0 +1,77 @@
+name: CCv2 Build Cleanup
+description: Plan combined age/count retention for SAP Commerce Cloud builds; dry-run by default.
+author: CommerceKit
+branding:
+  icon: trash-2
+  color: blue
+inputs:
+  token-endpoint:
+    description: Technical-user OAuth token endpoint
+    required: true
+  client-id:
+    description: Technical-user client identifier
+    required: true
+  client-secret:
+    description: Technical-user client secret
+    required: true
+  resource:
+    description: OAuth resource
+    required: true
+  subscription-code:
+    description: One subscription identifier
+    required: true
+  api-base-url:
+    description: HTTPS management API origin
+    default: https://portalapi.commerce.ondemand.com
+  application-code:
+    description: Optional exact application scope
+  retention-days:
+    description: Positive completion age in days, at most 36500
+    default: "30"
+  keep-latest:
+    description: Keep latest N non-deleted builds, at most 10000
+    default: "10"
+  dry-run:
+    description: Strict boolean; no DELETE requests when true
+    default: "true"
+  max-deletions:
+    description: Maximum distinct targets per immutable plan, at most 100
+    default: "20"
+  exclude-build-codes:
+    description: Comma/newline-separated exact build identifiers
+  timeout-minutes:
+    description: Overall deadline in minutes, at most 60
+    default: "15"
+  continue-on-delete-error:
+    description: Continue only after definitive build-local rejections
+    default: "false"
+outputs:
+  cleanup-status:
+    description: dry-run, no-op, blocked, success, partial-failure, failed, or outcome-unknown
+  dry-run:
+    description: Effective dry-run mode
+  scanned-count:
+    description: Builds in selected scope
+  eligible-count:
+    description: Builds passing retention and every safety gate
+  planned-count:
+    description: Eligible targets selected under the cap
+  deletion-requested-count:
+    description: Accepted HTTP 204 deletion initiations
+  skipped-count:
+    description: Scanned minus accepted, failed, and unknown outcomes
+  failed-count:
+    description: Targets with definitive failure or failed preflight
+  unknown-count:
+    description: Targets whose mutation outcome cannot be established
+  duration-ms:
+    description: Elapsed milliseconds
+  result-json:
+    description: Versioned sanitized result, bounded to 64 KiB with truncation metadata
+  notification-event:
+    description: Valid shared cleanup event when supported; empty while compatibility is blocked
+  report-path:
+    description: Sanitized report file beneath RUNNER_TEMP
+runs:
+  using: node24
+  main: dist/index.js

@@ -1,0 +1,633 @@
+diff --git a/apps/ccv2/docs/scenarios.md b/apps/ccv2/docs/scenarios.md
+index d48caf1..608c937 100644
+--- a/apps/ccv2/docs/scenarios.md
++++ b/apps/ccv2/docs/scenarios.md
+@@ -49,3 +49,31 @@ deployments retain their snapshot. Updating a scenario resets only fault-call
+ counters. Resetting a run removes simulation resources and counters and restores
+ the default scenario while retaining its credentials, expiration, and security
+ boundary.
++
++## Cleanup fixtures (candidate integration)
++
++`PUT /sandbox/v1/runs/{runId}/cleanup-fixture` requires the run-control bearer.
++It replaces only that run's builds/deployments (150/30 record limits), clears
++operation counters, and accepts optional `changes` and `loseDeleteResponse`
++simulation controls. The normal 64 KiB request limit still applies. A fixture's
++`response` is the vendor-shaped record; intentionally malformed records are
++supported so clients can test fail-closed validation.
++
++`modifiedAt` is internal fixture metadata. When supplied, deletion rejects builds
++modified within four hours. It is never returned by SAP-shaped build reads and
++is not evidence that SAP exposes a build modification timestamp or enforces this
++precondition at its API.
++
++Changes specify `operationId` (`getBuilds`, `getBuild`, `deleteBuild`), `onCall`,
++`buildCode`, and either `patch` or `remove`. Call counters are per operation and
++resource, making races deterministic. `loseDeleteResponse` models acceptance
++followed by a 500 response; the build remains stored with status `DELETED`,
++representing deletion initiation rather than physical disappearance.
++
++The existing state endpoint's `faultCounters` now counts all target operations
++(and token issuance), even when no fault is configured. Keys such as
++`deleteBuild:build-1` count attempted target mutations independently of control
++fixture operations; do not count run teardown or fixture PUT as SAP mutations.
++
++Always delete the isolated run in a `finally` block. Hosted runs require explicit
++configuration; these controls do not grant permission for production SAP writes.
+diff --git a/apps/ccv2/openapi/sandbox-control.yaml b/apps/ccv2/openapi/sandbox-control.yaml
+index b21bbee..00d214c 100644
+--- a/apps/ccv2/openapi/sandbox-control.yaml
++++ b/apps/ccv2/openapi/sandbox-control.yaml
+@@ -74,6 +74,29 @@ paths:
+           "400": { $ref: "#/components/responses/ControlError" },
+           default: { $ref: "#/components/responses/ControlError" },
+         }
++  /sandbox/v1/runs/{runId}/cleanup-fixture:
++    parameters: [{ $ref: "#/components/parameters/RunId" }]
++    put:
++      operationId: seedCleanupFixture
++      security: [{ RunControl: [] }]
++      description: Replace isolated build/deployment inventory and install cleanup-only simulation controls. No SAP DTO extension.
++      requestBody:
++        required: true
++        content:
++          application/json:
++            schema: { $ref: "#/components/schemas/CleanupFixture" }
++      responses:
++        "200":
++          description: Fixture installed
++          content:
++            application/json:
++              schema:
++                type: object
++                required: [builds, deployments]
++                properties:
++                  builds: { type: integer, minimum: 0 }
++                  deployments: { type: integer, minimum: 0 }
++        default: { $ref: "#/components/responses/ControlError" }
+   /sandbox/v1/runs/{runId}/state:
+     parameters: [{ $ref: "#/components/parameters/RunId" }]
+     get:
+@@ -327,3 +350,51 @@ components:
+           type: object
+           required: [code, message]
+           properties: { code: { type: string }, message: { type: string } }
++    CleanupFixture:
++      type: object
++      additionalProperties: false
++      required: [builds]
++      properties:
++        builds:
++          type: array
++          maxItems: 150
++          items:
++            type: object
++            additionalProperties: false
++            required: [code, response]
++            properties:
++              code: { type: string, pattern: "^[A-Za-z0-9_-]{1,100}$" }
++              response: { type: object, additionalProperties: true }
++              modifiedAt:
++                {
++                  type: string,
++                  format: date-time,
++                  description: Internal simulation metadata; never returned by SAP-shaped reads.,
++                }
++        deployments:
++          type: array
++          maxItems: 30
++          items:
++            type: object
++            additionalProperties: false
++            required: [code, response]
++            properties:
++              code: { type: string, pattern: "^[A-Za-z0-9_-]{1,100}$" }
++              response: { type: object, additionalProperties: true }
++        changes:
++          type: array
++          maxItems: 20
++          items:
++            type: object
++            additionalProperties: false
++            required: [operationId, onCall, buildCode]
++            properties:
++              operationId: { type: string, enum: [getBuilds, getBuild, deleteBuild] }
++              onCall: { type: integer, minimum: 1, maximum: 1000 }
++              buildCode: { type: string, pattern: "^[A-Za-z0-9_-]{1,100}$" }
++              patch: { type: object, additionalProperties: true }
++              remove: { type: boolean }
++        loseDeleteResponse:
++          type: array
++          maxItems: 20
++          items: { type: string, pattern: "^[A-Za-z0-9_-]{1,100}$" }
+diff --git a/apps/ccv2/scripts/validate-openapi.js b/apps/ccv2/scripts/validate-openapi.js
+index 0051f9b..bb4508d 100644
+--- a/apps/ccv2/scripts/validate-openapi.js
++++ b/apps/ccv2/scripts/validate-openapi.js
+@@ -166,8 +166,8 @@ const sandboxOperations = Object.entries(sandboxDocument.paths).flatMap(([route,
+     )
+     .map(([method, operation]) => ({ method, operationId: operation.operationId, route })),
+ );
+-if (sandboxOperations.length !== 10) {
+-  throw new Error(`Expected 10 sandbox operations, found ${String(sandboxOperations.length)}`);
++if (sandboxOperations.length !== 11) {
++  throw new Error(`Expected 11 sandbox operations, found ${String(sandboxOperations.length)}`);
+ }
+ const invalidSandboxRoute = sandboxOperations.find(
+   ({ route }) =>
+diff --git a/apps/ccv2/src/domain/cleanup-fixture.ts b/apps/ccv2/src/domain/cleanup-fixture.ts
+new file mode 100644
+index 0000000..6f8a622
+--- /dev/null
++++ b/apps/ccv2/src/domain/cleanup-fixture.ts
+@@ -0,0 +1,43 @@
++import { z } from "zod";
++
++const code = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
++const build = z
++  .object({
++    code,
++    response: z.record(z.string(), z.unknown()),
++    modifiedAt: z.iso.datetime().optional(),
++  })
++  .strict();
++const deployment = z.object({ code, response: z.record(z.string(), z.unknown()) }).strict();
++
++/** Simulation controls never appear in SAP response DTOs. */
++export const cleanupFixtureSchema = z
++  .object({
++    builds: z.array(build).max(150),
++    deployments: z.array(deployment).max(30).default([]),
++    changes: z
++      .array(
++        z
++          .object({
++            operationId: z.enum(["getBuilds", "getBuild", "deleteBuild"]),
++            onCall: z.number().int().min(1).max(1000),
++            buildCode: code,
++            patch: z.record(z.string(), z.unknown()).optional(),
++            remove: z.boolean().optional(),
++          })
++          .strict(),
++      )
++      .max(20)
++      .default([]),
++    loseDeleteResponse: z.array(code).max(20).default([]),
++  })
++  .strict()
++  .superRefine((value, context) => {
++    for (const name of ["builds", "deployments"] as const) {
++      if (new Set(value[name].map((item) => item.code)).size !== value[name].length) {
++        context.addIssue({ code: "custom", path: [name], message: "Fixture keys must be unique." });
++      }
++    }
++  });
++
++export type CleanupFixture = z.infer<typeof cleanupFixtureSchema>;
+diff --git a/apps/ccv2/src/durable-objects/ccv2-run.ts b/apps/ccv2/src/durable-objects/ccv2-run.ts
+index fa539bb..4c404d3 100644
+--- a/apps/ccv2/src/durable-objects/ccv2-run.ts
++++ b/apps/ccv2/src/durable-objects/ccv2-run.ts
+@@ -1,5 +1,6 @@
+ import { DurableObject } from "cloudflare:workers";
+ 
++import type { CleanupFixture } from "../domain/cleanup-fixture";
+ import { timingSafeTextEqual } from "../auth/crypto";
+ import type {
+   BuildDetail,
+@@ -32,6 +33,11 @@ import { DEFAULT_SCENARIO, type Scenario } from "../domain/scenario";
+ const SCHEMA_VERSION = 3;
+ const MAX_EVENTS = 200;
+ 
++// Control-plane fixtures can deliberately omit flags despite the production DTO type.
++function explicitlyFalse(value: unknown): boolean {
++  return value === false;
++}
++
+ export interface RunMetadata {
+   runId: string;
+   createdAt: string;
+@@ -507,12 +513,40 @@ export class Ccv2Run extends DurableObject<CloudflareBindings> {
+     const row = this.buildRow(subscriptionCode, buildCode);
+     if (!row) return this.failure(404, "build_not_found", "The build was not found.");
+     const detail = this.buildDetail(row);
+-    if (detail.status === "SCHEDULED" || detail.status === "BUILDING") {
++    if (detail.status !== "SUCCESS" && detail.status !== "FAIL") {
+       return this.failure(409, "build_in_progress", "A build in progress cannot be deleted.");
+     }
+-    if (detail.deployed) {
++    if (!explicitlyFalse(detail.deployed)) {
+       return this.failure(409, "build_in_use", "A deployed build cannot be deleted.");
+     }
++    if (!explicitlyFalse(detail.hasSnapshot))
++      return this.failure(409, "build_has_snapshot", "A build with a snapshot cannot be deleted.");
++    if (
++      this.deploymentRows(subscriptionCode).some((deployment) => {
++        const reference = this.deploymentDetail(deployment);
++        return (
++          reference.buildCode === buildCode &&
++          ["SCHEDULED", "DEPLOYING", "DEPLOYED"].includes(reference.status)
++        );
++      })
++    )
++      return this.failure(
++        409,
++        "build_deployment_reference",
++        "The build is referenced by an operational deployment.",
++      );
++    const modification = this.ctx.storage.sql
++      .exec<ResourceRow>(
++        "SELECT code, state_json, created_at FROM resources WHERE kind = 'cleanup-modification' AND code = ?",
++        buildCode,
++      )
++      .toArray()[0];
++    if (modification) {
++      const { modifiedAt } = JSON.parse(modification.state_json) as { modifiedAt: string };
++      if (Date.now() - Date.parse(modifiedAt) <= 4 * 60 * 60 * 1000)
++        return this.failure(409, "build_recently_modified", "The build was recently modified.");
++    }
++    // A DELETED record remains observable: the deletion request has been initiated.
+     detail.status = "DELETED";
+     this.ctx.storage.sql.exec(
+       "UPDATE builds SET state_json = ? WHERE code = ?",
+@@ -1384,6 +1418,116 @@ export class Ccv2Run extends DurableObject<CloudflareBindings> {
+     return { ok: true, value: null };
+   }
+ 
++  async seedCleanupFixture(
++    controlTokenHash: string,
++    fixture: CleanupFixture,
++  ): Promise<RunResult<{ builds: number; deployments: number }>> {
++    const authorization = await this.authorizeControl(controlTokenHash);
++    if (!authorization.ok) return authorization;
++    this.ctx.storage.transactionSync(() => {
++      this.ctx.storage.sql.exec("DELETE FROM builds");
++      this.ctx.storage.sql.exec("DELETE FROM deployments");
++      this.ctx.storage.sql.exec("DELETE FROM operation_counters");
++      this.ctx.storage.sql.exec("DELETE FROM resources WHERE kind LIKE 'cleanup-%'");
++      for (const item of fixture.builds) {
++        const timestamp =
++          typeof item.response.buildStartTimestamp === "string"
++            ? item.response.buildStartTimestamp
++            : "2000-01-01T00:00:00.000Z";
++        this.ctx.storage.sql.exec(
++          "INSERT INTO builds (code, subscription_code, state_json, scenario_json, poll_count, created_at) VALUES (?, ?, ?, ?, 0, ?)",
++          item.code,
++          SUBSCRIPTION_CODE,
++          JSON.stringify(item.response),
++          JSON.stringify(DEFAULT_SCENARIO.build),
++          timestamp,
++        );
++        if (item.modifiedAt)
++          this.ctx.storage.sql.exec(
++            "INSERT INTO resources (kind, subscription_code, code, state_json, created_at) VALUES ('cleanup-modification', ?, ?, ?, ?)",
++            SUBSCRIPTION_CODE,
++            item.code,
++            JSON.stringify({ modifiedAt: item.modifiedAt }),
++            timestamp,
++          );
++      }
++      for (const item of fixture.deployments) {
++        const detail = item.response;
++        this.ctx.storage.sql.exec(
++          "INSERT INTO deployments (code, subscription_code, environment_code, build_code, state_json, scenario_json, poll_count, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
++          item.code,
++          SUBSCRIPTION_CODE,
++          typeof detail.environmentCode === "string" ? detail.environmentCode : "d1",
++          typeof detail.buildCode === "string" ? detail.buildCode : "",
++          JSON.stringify(detail),
++          JSON.stringify(DEFAULT_SCENARIO.deployment),
++          typeof detail.createdTimestamp === "string"
++            ? detail.createdTimestamp
++            : "2000-01-01T00:00:00.000Z",
++        );
++      }
++      this.ctx.storage.sql.exec(
++        "INSERT INTO resources (kind, subscription_code, code, state_json, created_at) VALUES ('cleanup-controls', ?, 'controls', ?, ?)",
++        SUBSCRIPTION_CODE,
++        JSON.stringify({
++          changes: fixture.changes,
++          loseDeleteResponse: fixture.loseDeleteResponse,
++        }),
++        new Date().toISOString(),
++      );
++    });
++    return {
++      ok: true,
++      value: { builds: fixture.builds.length, deployments: fixture.deployments.length },
++    };
++  }
++
++  consumeCleanupDeleteResponseFault(buildCode: string): boolean {
++    const row = this.ctx.storage.sql
++      .exec<ResourceRow>(
++        "SELECT code, state_json, created_at FROM resources WHERE kind = 'cleanup-controls'",
++      )
++      .toArray()[0];
++    if (!row) return false;
++    const controls = JSON.parse(row.state_json) as Pick<
++      CleanupFixture,
++      "changes" | "loseDeleteResponse"
++    >;
++    return controls.loseDeleteResponse.includes(buildCode);
++  }
++
++  private applyCleanupChanges(operationId: string, resourceIdentifier: string, call: number): void {
++    const row = this.ctx.storage.sql
++      .exec<ResourceRow>(
++        "SELECT code, state_json, created_at FROM resources WHERE kind = 'cleanup-controls'",
++      )
++      .toArray()[0];
++    if (!row) return;
++    const controls = JSON.parse(row.state_json) as Pick<
++      CleanupFixture,
++      "changes" | "loseDeleteResponse"
++    >;
++    for (const change of controls.changes) {
++      if (
++        change.operationId !== operationId ||
++        change.onCall !== call ||
++        (operationId !== "getBuilds" && change.buildCode !== resourceIdentifier)
++      )
++        continue;
++      if (change.remove) {
++        this.ctx.storage.sql.exec("DELETE FROM builds WHERE code = ?", change.buildCode);
++      } else {
++        const build = this.buildRow(SUBSCRIPTION_CODE, change.buildCode);
++        if (build)
++          this.ctx.storage.sql.exec(
++            "UPDATE builds SET state_json = ? WHERE code = ?",
++            JSON.stringify({ ...this.buildDetail(build), ...change.patch }),
++            change.buildCode,
++          );
++      }
++    }
++  }
++
+   consumeFault(operationId: string, resourceIdentifier = ""): OperationFault | null {
+     const current = this.scenario();
+     const applicable = current.faults.filter(
+@@ -1391,7 +1535,6 @@ export class Ccv2Run extends DurableObject<CloudflareBindings> {
+         fault.operationId === operationId &&
+         (fault.resourceIdentifier === undefined || fault.resourceIdentifier === resourceIdentifier),
+     );
+-    if (applicable.length === 0) return null;
+     this.ctx.storage.sql.exec(
+       `INSERT INTO operation_counters (operation_id, resource_id, call_count) VALUES (?, ?, 1)
+        ON CONFLICT(operation_id, resource_id) DO UPDATE SET call_count = call_count + 1`,
+@@ -1405,6 +1548,7 @@ export class Ccv2Run extends DurableObject<CloudflareBindings> {
+         resourceIdentifier,
+       )
+       .one().count;
++    this.applyCleanupChanges(operationId, resourceIdentifier, call);
+     const fault = applicable.find((candidate) => candidate.onCalls.includes(call));
+     if (!fault) return null;
+     this.recordEvent("scenario.fault", operationId, resourceIdentifier, fault.status, { call });
+diff --git a/apps/ccv2/src/routes/builds.ts b/apps/ccv2/src/routes/builds.ts
+index baac225..ea21ec8 100644
+--- a/apps/ccv2/src/routes/builds.ts
++++ b/apps/ccv2/src/routes/builds.ts
+@@ -55,6 +55,18 @@ buildRoutes.delete("/v2/subscriptions/:subscriptionCode/builds/:buildCode", asyn
+     context.req.param("subscriptionCode"),
+     context.req.param("buildCode"),
+   );
++  if (
++    result.ok &&
++    (await context.env.CCV2_RUN.getByName(context.get("runId")).consumeCleanupDeleteResponseFault(
++      context.req.param("buildCode"),
++    ))
++  ) {
++    return vendorProblem(
++      500,
++      "Simulated response loss",
++      "Deletion accepted before simulated response loss.",
++    );
++  }
+   return result.ok
+     ? new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } })
+     : vendorError(result);
+diff --git a/apps/ccv2/src/routes/sandbox-control.ts b/apps/ccv2/src/routes/sandbox-control.ts
+index 18cf0f6..4f3ec7e 100644
+--- a/apps/ccv2/src/routes/sandbox-control.ts
++++ b/apps/ccv2/src/routes/sandbox-control.ts
+@@ -3,6 +3,7 @@ import { ZodError } from "zod";
+ 
+ import { randomHex, randomSecret, secretVerifier } from "../auth/crypto";
+ import { RUN_ID_PATTERN, RUN_LIFETIME_MS, type RunResult } from "../domain/run";
++import { cleanupFixtureSchema } from "../domain/cleanup-fixture";
+ import { parseScenario } from "../domain/scenario";
+ import { bearerToken, controlError, readJsonBody, RequestProblem, jsonResponse } from "../http";
+ import type { AppEnvironment } from "../types";
+@@ -145,3 +146,20 @@ sandboxControlRoutes.post("/sandbox/v1/runs/:runId/reset", async (context) => {
+   const result = await stubFor(context, runId).reset(verifier);
+   return result.ok ? jsonResponse(result.value) : resultResponse(result);
+ });
++
++sandboxControlRoutes.put("/sandbox/v1/runs/:runId/cleanup-fixture", async (context) => {
++  const { runId } = context.req.param();
++  const verifier = await controlVerifier(context, runId);
++  if (verifier instanceof Response) return verifier;
++  try {
++    const fixture = cleanupFixtureSchema.parse(await readJsonBody(context));
++    const result = await stubFor(context, runId).seedCleanupFixture(verifier, fixture);
++    return result.ok ? jsonResponse(result.value) : resultResponse(result);
++  } catch (error) {
++    if (error instanceof RequestProblem)
++      return controlError(error.status, error.code, error.message);
++    if (error instanceof ZodError)
++      return controlError(400, "invalid_fixture", "Invalid cleanup fixture.");
++    throw error;
++  }
++});
+diff --git a/apps/ccv2/test/builds.test.ts b/apps/ccv2/test/builds.test.ts
+index 87df757..a1bf093 100644
+--- a/apps/ccv2/test/builds.test.ts
++++ b/apps/ccv2/test/builds.test.ts
+@@ -91,11 +91,11 @@ describe("SAP-compatible build API", () => {
+       method: "DELETE",
+       headers: sapHeaders(token),
+     });
+-    expect(deletion.status).toBe(204);
++    expect(deletion.status).toBe(409);
+     const deleted = await worker.default.fetch(`${base}/${created.code}`, {
+       headers: sapHeaders(token),
+     });
+-    await expect(deleted.json()).resolves.toMatchObject({ status: "DELETED" });
++    await expect(deleted.json()).resolves.toMatchObject({ status: "SUCCESS", hasSnapshot: true });
+   });
+ 
+   it("supports failed and nonterminating scenario snapshots", async () => {
+diff --git a/apps/ccv2/test/cleanup.test.ts b/apps/ccv2/test/cleanup.test.ts
+new file mode 100644
+index 0000000..cfab767
+--- /dev/null
++++ b/apps/ccv2/test/cleanup.test.ts
+@@ -0,0 +1,155 @@
++import { exports as worker } from "cloudflare:workers";
++import { describe, expect, it } from "vitest";
++import { SUBSCRIPTION_CODE } from "../src/domain/fixtures";
++import { controlHeaders, createRun, issueToken, sapHeaders } from "./helpers";
++
++const base = `https://example.com/v2/subscriptions/${SUBSCRIPTION_CODE}/builds`;
++const build = (code: string, overrides: Record<string, unknown> = {}) => ({
++  code,
++  subscriptionCode: SUBSCRIPTION_CODE,
++  applicationCode: "commerce",
++  status: "SUCCESS",
++  buildStartTimestamp: "2020-01-01T00:00:00.000Z",
++  buildEndTimestamp: "2020-01-01T01:00:00.000Z",
++  deployed: false,
++  hasSnapshot: false,
++  ...overrides,
++});
++
++describe("cleanup control fixtures", () => {
++  it("seeds isolated paginated production-shaped records; initiation retains the deleted record", async () => {
++    const run = await createRun();
++    try {
++      const fixture = await worker.default.fetch(
++        `https://example.com/sandbox/v1/runs/${run.runId}/cleanup-fixture`,
++        {
++          method: "PUT",
++          headers: { ...controlHeaders(run), "Content-Type": "application/json" },
++          body: JSON.stringify({
++            builds: Array.from({ length: 105 }, (_, index) => ({
++              code: `b${String(index)}`,
++              response: build(`b${String(index)}`),
++            })),
++          }),
++        },
++      );
++      expect(fixture.status).toBe(200);
++      const headers = sapHeaders(await issueToken(run));
++      const first = await worker.default.fetch(`${base}?$top=100&$skip=0`, { headers });
++      const firstBody = await first.json<{ count: number; value: unknown[] }>();
++      expect(firstBody.count).toBe(105);
++      expect(firstBody.value).toHaveLength(100);
++      const second = await worker.default.fetch(`${base}?$top=100&$skip=100`, { headers });
++      expect((await second.json<{ value: unknown[] }>()).value).toHaveLength(5);
++      const accepted = await worker.default.fetch(`${base}/b0`, { method: "DELETE", headers });
++      expect(accepted.status).toBe(204);
++      expect(await accepted.text()).toBe("");
++      const retained = await worker.default.fetch(`${base}/b0`, { headers });
++      await expect(retained.json()).resolves.toMatchObject({ code: "b0", status: "DELETED" });
++      const state = await worker.default.fetch(
++        `https://example.com/sandbox/v1/runs/${run.runId}/state`,
++        { headers: controlHeaders(run) },
++      );
++      expect(
++        (await state.json<{ faultCounters: Record<string, number> }>()).faultCounters[
++          "deleteBuild:b0"
++        ],
++      ).toBe(1);
++    } finally {
++      expect(
++        (
++          await worker.default.fetch(`https://example.com/sandbox/v1/runs/${run.runId}`, {
++            method: "DELETE",
++            headers: controlHeaders(run),
++          })
++        ).status,
++      ).toBe(204);
++    }
++  });
++
++  it("models safety races, internal modification and accepted ambiguous responses without leaking simulation fields", async () => {
++    const run = await createRun();
++    try {
++      const fixture = await worker.default.fetch(
++        `https://example.com/sandbox/v1/runs/${run.runId}/cleanup-fixture`,
++        {
++          method: "PUT",
++          headers: { ...controlHeaders(run), "Content-Type": "application/json" },
++          body: JSON.stringify({
++            builds: [
++              { code: "race", response: build("race") },
++              { code: "recent", response: build("recent"), modifiedAt: new Date().toISOString() },
++              { code: "ambiguous", response: build("ambiguous") },
++              { code: "snapshot", response: build("snapshot", { hasSnapshot: true }) },
++              { code: "unknown", response: build("unknown", { status: "UNKNOWN" }) },
++            ],
++            changes: [
++              { operationId: "getBuild", onCall: 1, buildCode: "race", patch: { deployed: true } },
++            ],
++            loseDeleteResponse: ["ambiguous"],
++          }),
++        },
++      );
++      expect(fixture.status).toBe(200);
++      const headers = sapHeaders(await issueToken(run));
++      const raced = await worker.default.fetch(`${base}/race`, { headers });
++      await expect(raced.json()).resolves.toMatchObject({ deployed: true });
++      for (const code of ["race", "recent", "snapshot", "unknown"]) {
++        expect(
++          (await worker.default.fetch(`${base}/${code}`, { method: "DELETE", headers })).status,
++        ).toBe(409);
++      }
++      const recent = await worker.default.fetch(`${base}/recent`, { headers });
++      expect(await recent.json()).not.toHaveProperty("modifiedAt");
++      expect(
++        (await worker.default.fetch(`${base}/ambiguous`, { method: "DELETE", headers })).status,
++      ).toBe(500);
++      const accepted = await worker.default.fetch(`${base}/ambiguous`, { headers });
++      await expect(accepted.json()).resolves.toMatchObject({ status: "DELETED" });
++      const other = await createRun();
++      try {
++        const isolated = await worker.default.fetch(base, {
++          headers: sapHeaders(await issueToken(other)),
++        });
++        await expect(isolated.json()).resolves.toMatchObject({ count: 0, value: [] });
++      } finally {
++        await worker.default.fetch(`https://example.com/sandbox/v1/runs/${other.runId}`, {
++          method: "DELETE",
++          headers: controlHeaders(other),
++        });
++      }
++    } finally {
++      await worker.default.fetch(`https://example.com/sandbox/v1/runs/${run.runId}`, {
++        method: "DELETE",
++        headers: controlHeaders(run),
++      });
++    }
++  });
++
++  it("requires control authorization and rejects duplicate fixture keys", async () => {
++    const run = await createRun();
++    try {
++      const url = `https://example.com/sandbox/v1/runs/${run.runId}/cleanup-fixture`;
++      expect((await worker.default.fetch(url, { method: "PUT" })).status).toBe(401);
++      expect(
++        (
++          await worker.default.fetch(url, {
++            method: "PUT",
++            headers: { ...controlHeaders(run), "Content-Type": "application/json" },
++            body: JSON.stringify({
++              builds: [
++                { code: "b", response: build("b") },
++                { code: "b", response: build("b") },
++              ],
++            }),
++          })
++        ).status,
++      ).toBe(400);
++    } finally {
++      await worker.default.fetch(`https://example.com/sandbox/v1/runs/${run.runId}`, {
++        method: "DELETE",
++        headers: controlHeaders(run),
++      });
++    }
++  });
++});
+diff --git a/apps/ccv2/test/contracts.test.ts b/apps/ccv2/test/contracts.test.ts
+index 68c45e3..237d726 100644
+--- a/apps/ccv2/test/contracts.test.ts
++++ b/apps/ccv2/test/contracts.test.ts
+@@ -58,7 +58,7 @@ describe("published API contracts", () => {
+         )
+         .map(([method, operation]) => ({ method, operation, path })),
+     );
+-    expect(operations).toHaveLength(10);
++    expect(operations).toHaveLength(11);
+     for (const { method, operation, path } of operations) {
+       const honoPath = path.replaceAll(/\{([^}]+)\}/g, ":$1");
+       expect(routes, operation.operationId).toContain(`${method.toUpperCase()} ${honoPath}`);

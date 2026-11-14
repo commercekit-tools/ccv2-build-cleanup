@@ -1,0 +1,3 @@
+minimumReleaseAgeExclude:
+  - "@commercekit-tools/ccv2-client@0.0.3"
+  - "@commercekit-tools/notification-contract@0.0.3"

@@ -78,7 +78,7 @@ failure and unknown outcomes. Notification/report failures preserve the cleanup
 outcome. CI also verifies the local `uses: ./` handled-input-failure event.
 
 **PASS:** actual standalone bundle against isolated existing sandbox runs: OAuth,
-expiry/401 refresh, safe-read429/500 recovery,105-build multi-page inventory,
+401 refresh, safe-read429/500 recovery,105-build multi-page inventory,
 combined retention/protections/exclusions, exact empty application scope,
 repeat-run safety, invalid flags, pagination instability, authorization failure,
 report/summary/output consistency and zero target API mutations for dry-run and

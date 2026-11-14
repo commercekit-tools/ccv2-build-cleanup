@@ -15,7 +15,8 @@ lockfile/bundle and verifies a nonempty validated cleanup notification. Candidat
 source preparation is no longer a normal CI/coverage requirement. The local
 sandbox source used by CI is merged commit
 `4af998a4783ffa54dd5d7835bfc0dcc4dd382e14`; no unpublished fixture patch is
-needed. Current validation results belong in
+needed. Consumer examples pin the validated registry-backed cleanup commit
+`d7363059d4ef523a40e8df912c03ee1215200224`. Current validation results belong in
 [validation-report.md](validation-report.md), and remaining SAP/Action-release
 gates are in [release-readiness.md](release-readiness.md).
 

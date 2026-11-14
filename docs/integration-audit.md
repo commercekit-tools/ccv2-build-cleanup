@@ -13,7 +13,7 @@ source alias, developer-local dependency or unpublished version is used.
   [package-only run 43622416072](https://github.com/commercekit-tools/action-kit/actions/runs/43622416072).
 - Compatible Notify: merged `832f6bd04b1889d0d3b4d47a1b2dc0e110985c73`.
 - Cleanup upgrade base: `ae42942c18f2ca48f6b4286c31089cf629865796`.
-- Local/CI sandbox source: merged `4af998a4783ffa54dd5d7835bfc0dcc4dd382e14`,
+- CI sandbox source: merged `4af998a4783ffa54dd5d7835bfc0dcc4dd382e14`,
   containing the reviewed cleanup fixtures and dependency updates.
 
 `createBuildCleanupEvent` and shared event validation are used directly from

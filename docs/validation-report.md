@@ -94,10 +94,13 @@ environment overrides removed (`env -u GITHUB_TOKEN -u GH_TOKEN gh ...`):
 
 ## Executed local checks
 
-The local commands below were run during the implementation upgrade. This
-follow-up rechecked the completed hosted main runs and changed only this report;
+The local commands below were run during the implementation upgrade. The prior
+evidence-only follow-up rechecked the completed hosted main runs and changed
+only this report;
 `pnpm format:check`, `pnpm scan:public` and `git diff --check` passed for the
-report update. No runtime bundle or production logic changed.
+report update. The subsequent branch-protection documentation update also passed
+these checks for both readiness and validation docs. No runtime bundle or
+production logic changed.
 
 Commands ran in the isolated upgrade checkout with Node24 first on PATH.
 `CLEANUP_SANDBOX_PATH` below points to the isolated existing sandbox checkout.
@@ -191,10 +194,15 @@ source merge does not clear the remaining release or destructive-operation gates
   destructive test of one explicitly approved disposable build require the
   separate authorizations described in the
   [release-readiness runbook](release-readiness.md). None was performed here.
-- **BLOCKED — owner governance/setup before release:** review ownership and
-  consumer configuration and enforce `validate`/CodeQL through appropriate
-  branch protections or rulesets. The inspected main branch metadata reports
-  `protected=false`; no repository settings were changed. Fork/package-access
+- **PASS — required branch checks configured:** on 2026-11-14, main protection
+  was applied and read back with `protected=true`, up-to-date `validate` and
+  `CodeQL` requirements bound to GitHub Actions (15368) and GitHub Advanced
+  Security (57789), administrator enforcement enabled, and force pushes/deletion
+  disabled. See [release-readiness.md](release-readiness.md) for exact settings
+  and verification commands. This resolves the previously recorded missing
+  branch-protection gate.
+- **BLOCKED — owner governance/setup before release:** ownership, release review
+  and consumer configuration still require owner approval. Fork/package-access
   limitations remain, despite trusted-main access passing. Never expose
   privileged credentials through `pull_request_target`.
 - **NOT RUN:** hosted sandbox smoke, live provider webhook delivery and all real

@@ -16,26 +16,81 @@ Compatible Notify commit
 validation and CodeQL passed. Package publication did not create an Action
 release or Git release tag and does not authorize SAP deletion.
 
-Remaining gates before an Action release or real apply:
+## Main branch protection — configured 2026-11-14
 
-1. Obtain authoritative evidence for four-hour modification eligibility and
-   production API rejection before acceptance, or a supported eligibility API.
-   Completion time is not that evidence. The production adapter stays closed.
-2. Review active deployment/green/canary/rollback and backup reference coverage
-   against supported APIs and the target subscription. Incomplete evidence must
-   continue to block apply. Offset pagination remains non-transactional.
-3. Review the exact cleanup commit, published-package lock integrity, regenerated
-   bundle, valid notification output and compatible immutable Notify pin. Keep
-   all required validation/CodeQL checks green; no release is implied by merge.
-4. Verify this repository has package-read access to both existing packages.
-   Fork workflows may not have access; use reviewed trusted branches without
-   exposing privileged credentials or using pull_request_target. Consumers of
-   the bundled action need no package-registry credentials.
-5. Review local and hosted validation evidence, coverage, bundle consistency,
-   security scans, workflow lint, ownership and consumer configuration. Configure
-   required branch check `validate` and CodeQL separately where needed.
-6. Complete separately authorized non-production validation and obtain owner
-   approval. Sandbox success is insufficient to establish SAP guarantees.
+**PASS:** classic branch protection for the exact `main` branch was applied with
+GitHub's branch-protection API and independently read back at
+**2026-11-14 18:33 UTC**. Main was
+`29f49c0b1489543fbde145a9af1ef4ba6a3db428` when configured. The branch API now
+returns `protected=true`; there were no existing protection rules or inherited
+rulesets to replace. This repository setting is separate from Action releases
+and consumer cleanup enablement.
+
+| Setting                               | Verified value                                      |
+| ------------------------------------- | --------------------------------------------------- |
+| Required status check                 | `validate`, GitHub Actions app ID **15368**         |
+| Required status check                 | `CodeQL`, GitHub Advanced Security app ID **57789** |
+| Require branch to be up to date       | **Enabled** (`required_status_checks.strict=true`)  |
+| Enforce protection for administrators | **Enabled** (`enforce_admins.enabled=true`)         |
+| Allow force pushes                    | **Disabled**                                        |
+| Allow branch deletion                 | **Disabled**                                        |
+| Required approving reviews            | Not configured (field absent in API read-back)      |
+| Additional push-identity restrictions | Not configured (field absent in API read-back)      |
+
+Use the exact required check names shown above. `CodeQL` is the processed PR
+code-scanning check from GitHub Advanced Security; the Actions workflow's
+`analyze` job is a separate check. Successful checks on the reviewed PR supplied
+the observed app IDs. Required checks are bound to those producers using the
+API's `checks` entries, rather than accepting an identically named status from
+any source. See the
+[GitHub branch-protection API](https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection)
+for `checks.app_id`, `strict` and administrator-enforcement semantics.
+
+Verify the live policy with authorized repository access:
+
+```sh
+gh api repos/commercekit-tools/ccv2-build-cleanup/branches/main/protection
+gh api repos/commercekit-tools/ccv2-build-cleanup/branches/main
+# On a current PR, verify GitHub recognizes the required checks:
+gh pr checks <PR_NUMBER> --repo commercekit-tools/ccv2-build-cleanup --required
+```
+
+Merge through a reviewed PR only after the exact required checks pass on the
+current head with main up to date. Keep these names/producers stable or update
+the protection deliberately when changing workflows. Do not bypass or disable
+the policy to merge a failing change. No reviewer-count, signature, linear-history
+or environment-approval requirements were introduced by this configuration.
+
+## Remaining gates before an Action release or real apply
+
+1. **BLOCKED — SAP eligibility evidence:** obtain authoritative evidence for
+   four-hour modification eligibility and production API rejection before
+   acceptance, or a supported eligibility API. Completion time is not that
+   evidence. The production adapter retains `eligibilityVerified=false` with
+   no bypass.
+2. **BLOCKED — operational protection review:** verify active deployment,
+   green/canary/rollback and snapshot/backup reference coverage against supported
+   APIs and the target subscription. Incomplete protection evidence and
+   unstable/incomplete inventory block apply. Pagination remains non-atomic;
+   preflight does not eliminate the check/delete race.
+3. **BLOCKED — owner release review and consumer setup:** review the exact cleanup
+   commit, registry lock integrity, bundle, notification output, ownership and
+   consumer configuration. Configure one authoritative workflow per subscription,
+   coordinate deployments and keep real deletion disabled. Green branch checks
+   do not constitute release approval.
+4. **BLOCKED — separately authorized non-production validation:** complete the
+   controlled runbook below and obtain owner approval. Real SAP read/dry-run and
+   destructive validation have not been performed. Sandbox success does not
+   establish production SAP guarantees.
+5. **Access limitation:** trusted-main registry installation and pre-/post-merge
+   validation are proven; see [validation-report.md](validation-report.md).
+   Fork workflows may lack package access. Use reviewed trusted branches without
+   exposing privileged credentials or using `pull_request_target`. Consumers of
+   the bundled action need no registry credentials.
+6. **NOT RUN:** hosted sandbox smoke and live Slack/Teams webhook delivery. Dedicated
+   process-cancellation and network-timeout sandbox E2E fixtures remain unexecuted;
+   related unit/integration coverage is recorded separately in the validation
+   report. No live SAP operation is implied by repository or sandbox tests.
 
 ## Future controlled non-production validation
 

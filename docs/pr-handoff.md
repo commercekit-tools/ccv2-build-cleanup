@@ -38,3 +38,8 @@ real SAP deletion is part of this handoff. Four-hour SAP eligibility evidence,
 operational safety review, supported contract publication/pinning and separately
 authorized non-production validation remain blockers. GitHub-hosted CI must be
 reviewed independently from local evidence.
+
+PR #1 security remediation is commit
+`29d454c1d0ff02a3619d325936ae00c2bc94a3a7`. Consumer examples now pin this
+validated audit/CodeQL fix instead of the initial implementation. The action
+remains unreleased and all SAP eligibility/publication gates remain in force.

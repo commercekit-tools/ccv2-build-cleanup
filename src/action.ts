@@ -83,11 +83,7 @@ export async function run(
   let event = "";
   let reportPath = "";
   try {
-    event = createCleanupNotification(value, safe.env(env)) ?? "";
-    if (!event)
-      core.warning(
-        "Cleanup notification requires the unpublished additive contract extension. See release-readiness.md.",
-      );
+    event = createCleanupNotification(value, safe.env(env));
   } catch {
     core.warning(
       "Notification event generation failed; cleanup outcome is preserved.",

@@ -15,9 +15,11 @@ pnpm typecheck
 pnpm bundle
 ```
 
-Full coverage validation additionally prepares the exact-source notification
-candidate and local sandbox described in `integration/README.md` and
-`docs/sandbox-testing.md`; normal registry packages do not support cleanup events.
+Full validation uses the exact published notification contract and the existing
+local sandbox described in `docs/sandbox-testing.md`. Set
+`CLEANUP_SANDBOX_PATH` to the reviewed sandbox checkout when running coverage,
+so the bundled-action end-to-end test runs instead of being skipped. No
+notification-contract source checkout, alias or candidate preparation is needed.
 Run `pnpm test:coverage`, `pnpm bundle:check`, `pnpm metadata:check`,
 `pnpm scan:public` and `pnpm audit`. Coverage thresholds are 98% in all metrics,
 including the entry point and destructive orchestration. Do not weaken them.

@@ -1,5 +1,40 @@
 # Integration audit
 
+## Published-contract adoption
+
+The cleanup action now consumes published notification-contract **0.0.4** and
+ccv2-client **0.0.3** through their existing public exports. The lockfile and
+standalone bundle are generated from normal registry installation; no candidate
+source alias, developer-local dependency or unpublished version is used.
+
+- notification-contract 0.0.4 registry integrity:
+  `sha512-y1kTB/s049V0DGLoQZd4s+vlFscShG5wS5g2H4WH6t6rRSOuJrKiCy42dcNlx5wC7NAy6hQuYoTFOQVQ1+PVoA==`.
+- Publication source: action-kit `a03da9366e6483040d504a742c1a95413c1202cb`;
+  [package-only run 43622416072](https://github.com/commercekit-tools/action-kit/actions/runs/43622416072).
+- Compatible Notify: merged `832f6bd04b1889d0d3b4d47a1b2dc0e110985c73`.
+- Cleanup upgrade base: `ae42942c18f2ca48f6b4286c31089cf629865796`.
+- Local/CI sandbox source: merged `4af998a4783ffa54dd5d7835bfc0dcc4dd382e14`,
+  containing the reviewed cleanup fixtures and dependency updates.
+
+`createBuildCleanupEvent` and shared event validation are used directly from
+the selected published package. Existing shared sanitization/context/link APIs
+and ccv2-client OAuth/cache/transport/retry/encoding APIs remain in use. Notify
+continues to own all Slack/Teams rendering and webhook delivery. No new shared
+package, local auth implementation or delivery subsystem was introduced.
+
+The normal test suite validates emitted events using actual registry APIs, and
+CI executes the actual standalone bundle against the existing local sandbox.
+The retained patch/provenance artifacts and the original snapshot’s candidate
+scripts are historical evidence, not normal dependency or coverage prerequisites. SAP eligibility remains
+unverified; no deletion bypass, production enablement, deployment or release
+tag is part of this upgrade. Current executed outcomes are recorded in
+[validation-report.md](validation-report.md).
+
+## Original inspection and candidate phase
+
+The remainder records the initial pre-publication state. Statements about the
+old 0.0.3 event gate and candidate-only validation describe that historical phase.
+
 Inspected local clean source trees on 2026-11-13 (local calendar transitioned to
 2026-11-14 UTC during validation). Cleanup started with no commits or action
 implementation; existing `.idea/` and `.iml` files were preserved and ignored.

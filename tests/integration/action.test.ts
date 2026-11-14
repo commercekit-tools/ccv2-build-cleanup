@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { parseNotificationEventJson } from "@commercekit-tools/notification-contract";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,9 +7,14 @@ import { run, type ActionCore } from "../../src/action.js";
 import { createCleanupNotification } from "../../src/reporting/notification.js";
 import { writeReport } from "../../src/reporting/result.js";
 import { build, rawInputs, start } from "../fixtures/builds.js";
-vi.mock("../../src/reporting/notification.js", () => ({
-  createCleanupNotification: vi.fn(() => undefined),
-}));
+vi.mock("../../src/reporting/notification.js", async (original) => {
+  const actual =
+    await original<typeof import("../../src/reporting/notification.js")>();
+  return {
+    ...actual,
+    createCleanupNotification: vi.fn(actual.createCleanupNotification),
+  };
+});
 vi.mock("../../src/reporting/result.js", async (original) => ({
   ...(await original<typeof import("../../src/reporting/result.js")>()),
   writeReport: vi.fn((...args: Parameters<typeof writeReport>) =>
@@ -88,8 +94,13 @@ function setup(
   };
   return { core, output, summaries, runtime, calls };
 }
-beforeEach(() => {
-  vi.mocked(createCleanupNotification).mockReset().mockReturnValue(undefined);
+beforeEach(async () => {
+  const actual = await vi.importActual<
+    typeof import("../../src/reporting/notification.js")
+  >("../../src/reporting/notification.js");
+  vi.mocked(createCleanupNotification)
+    .mockReset()
+    .mockImplementation(actual.createCleanupNotification);
 });
 describe("real shared authentication and action reporting", () => {
   it("maps credential/resource form, masks credentials/tokens and performs zero mutations", async () => {
@@ -129,7 +140,7 @@ describe("real shared authentication and action reporting", () => {
         "dry-run": "true",
         "scanned-count": 1,
         "deletion-requested-count": 0,
-        "notification-event": "",
+        "notification-event": expect.any(String),
       });
       expect(x.core.setFailed).not.toHaveBeenCalled();
       expect(x.summaries.join("")).toContain("DRY RUN");
@@ -217,15 +228,25 @@ describe("real shared authentication and action reporting", () => {
       "Job summary could not be written; cleanup outputs are preserved.",
     );
   });
-  it("preserves a valid candidate event output", async () => {
-    const x = setup();
-    vi.mocked(createCleanupNotification).mockReturnValue(
-      '{"candidate":"valid"}',
-    );
+  it("emits a valid published-contract event matching the cleanup result", async () => {
+    const x = setup({ "application-code": "app" });
     await run(x.core, {}, undefined, x.runtime);
-    expect(x.output["notification-event"]).toBe('{"candidate":"valid"}');
+    const event = parseNotificationEventJson(
+      String(x.output["notification-event"]),
+    );
+    expect(event.eventType).toBe("ccv2.build-cleanup.completed");
+    expect(event.status).toBe("failure");
+    expect(event.data).toMatchObject({
+      mode: "dry-run",
+      subscriptionCode: "sub",
+      applicationCode: "app",
+      cleanupStatus: "blocked",
+      scannedCount: x.output["scanned-count"],
+      plannedCount: x.output["planned-count"],
+      deletionRequestedCount: 0,
+    });
     expect(x.core.warning).not.toHaveBeenCalledWith(
-      expect.stringContaining("unpublished"),
+      expect.stringContaining("Notification event generation failed"),
     );
   });
   it("supports cancellation before inventory", async () => {

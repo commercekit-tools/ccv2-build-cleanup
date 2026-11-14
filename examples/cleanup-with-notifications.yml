@@ -1,7 +1,6 @@
-# Candidate integration only: published notification-contract 0.0.3 and current
-# Notify cannot emit/render cleanup. Apply reviewed additive patches and publish
-# separately, then pin compatible Notify and a newly rebuilt cleanup commit.
-# The current cleanup pin remains safe but has an empty notification output.
+# Unreleased registry-backed cleanup notification integration.
+# Both action pins are immutable; review their validation before adoption.
+# This workflow remains dry-run and does not authorize real deletion.
 name: Preview and notify
 on:
   workflow_dispatch:
@@ -24,7 +23,7 @@ jobs:
           resource: ${{ secrets.CCV2_RESOURCE }}
           subscription-code: ${{ vars.CCV2_SUBSCRIPTION_CODE }}
           dry-run: "true"
-      - uses: commercekit-tools/notify@REPLACE_WITH_COMPATIBLE_NOTIFY_40_CHARACTER_COMMIT_SHA
+      - uses: commercekit-tools/notify@832f6bd04b1889d0d3b4d47a1b2dc0e110985c73
         if: ${{ always() && steps.cleanup.outputs.notification-event != '' }}
         with:
           provider: slack # or teams-workflow

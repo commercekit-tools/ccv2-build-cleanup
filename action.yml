@@ -69,7 +69,7 @@ outputs:
   result-json:
     description: Versioned sanitized result, bounded to 64 KiB with truncation metadata
   notification-event:
-    description: Valid shared cleanup event when supported; empty while compatibility is blocked
+    description: Validated shared cleanup event JSON; empty only if notification generation fails
   report-path:
     description: Sanitized report file beneath RUNNER_TEMP
 runs:

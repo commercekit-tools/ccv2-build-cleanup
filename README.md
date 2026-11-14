@@ -7,15 +7,14 @@ dependencies are bundled in `dist/index.js`.
 **Dry-run is the default. Real SAP apply is currently blocked:** supported SAP
 responses do not prove the documented four-hour last-modification condition.
 Candidates receive `eligibility-unverified`; no bypass input exists. See
-[release gates](docs/release-readiness.md) before use. The published notification
-contract also needs a separately published additive cleanup event extension.
+[release gates](docs/release-readiness.md) before use.
 
 The action consumes the existing `@commercekit-tools/ccv2-client@0.0.3` for OAuth,
 token caching/refresh, endpoint restrictions and safe transport. It consumes
-`@commercekit-tools/notification-contract@0.0.3` for validation, safe context,
-links and sanitization. OAuth/HTTP infrastructure and webhook delivery are not
-implemented here. [Integration audit](docs/integration-audit.md) records exact
-source SHAs, registry evidence and candidate provenance.
+`@commercekit-tools/notification-contract@0.0.4` for cleanup-event factories,
+validation, safe context, links and sanitization. OAuth/HTTP infrastructure and
+webhook delivery are not implemented here. [Integration audit](docs/integration-audit.md) records exact
+source SHAs, published-package integrity and historical candidate provenance.
 
 ## Combined retention
 
@@ -132,7 +131,7 @@ Authorization, deadline, inventory and safety failures cannot be continued past.
 | unknown-count            | Targets with ambiguous mutation outcome                                             |
 | duration-ms              | Elapsed milliseconds                                                                |
 | result-json              | Versioned sanitized JSON, max 64 KiB with explicit omitted-decision count           |
-| notification-event       | Shared cleanup event when compatible; currently empty with a visible warning        |
+| notification-event       | Validated `ccv2.build-cleanup.completed` JSON from the published shared contract    |
 | report-path              | Full sanitized JSON file in a private per-run RUNNER_TEMP directory                 |
 
 Result schema v1 records scope/policy/completeness, counts, decisions, reasons,
@@ -145,14 +144,25 @@ report/notification errors cannot erase the original outcome.
 
 ## Notifications and validation
 
-Use [cleanup-with-notifications.yml](examples/cleanup-with-notifications.yml)
-after the separately reviewed contract/Notify extension is published and pinned.
-It passes `notification-event` to Notify's `event-json`, uses `always()` with a
-nonempty-event guard and keeps webhook secrets only on Notify. Notify owns Slack
-and Teams Workflows rendering/delivery. Notification failure does not hide cleanup
-failure. Existing Notify commits reject the new event; no compatible published
-version is claimed. [Candidate integration](integration/README.md) includes
-focused additive patches, packed-source integrity and regression evidence.
+Use [cleanup-with-notifications.yml](examples/cleanup-with-notifications.yml).
+The action creates and validates `ccv2.build-cleanup.completed` through the exact
+published `notification-contract@0.0.4` package. Dry-run, blocked, successful and
+failed cleanup outcomes include bounded mode, scope, policy, counts and duration;
+accepted requests are never reported as physical deletion.
+
+The example passes `notification-event` to Notify's `event-json`, uses `always()`
+with a nonempty-event guard and keeps webhook secrets only on Notify. It pins
+compatible unreleased Notify commit
+[`832f6bd04b1889d0d3b4d47a1b2dc0e110985c73`](https://github.com/commercekit-tools/notify/commit/832f6bd04b1889d0d3b4d47a1b2dc0e110985c73).
+Notify owns Slack and Teams Workflows rendering/delivery. Notification failure
+does not hide cleanup failure. Older Notify builds using contract 0.0.3 reject
+the cleanup event. No Action release or version tag is implied by these commits.
+
+Normal validation uses the registry-installed package and the actual bundled
+action against the existing local sandbox. [Historical integration artifacts](integration/README.md)
+retain the pre-publication patches and candidate evidence; candidate source
+preparation, dependency aliases and packed-source test bundles are no longer
+required by normal CI or coverage validation.
 
 Development uses strict TypeScript, pnpm, Vitest/V8 (98% minimum for all four
 coverage metrics), ESLint, Prettier, ncc and the existing local CommerceKit sandbox.
@@ -161,5 +171,6 @@ execution. Sandbox metadata is not production SAP evidence. See
 [validation report](docs/validation-report.md) for executed commands and remaining
 gates, [CONTRIBUTING.md](CONTRIBUTING.md) for setup and [SECURITY.md](SECURITY.md).
 
-Nothing in this repository authorizes production cleanup, release or publication.
+Passing validation and consuming a published dependency do not authorize
+production cleanup or an Action release.
 License: [MIT](LICENSE), CommerceKit.

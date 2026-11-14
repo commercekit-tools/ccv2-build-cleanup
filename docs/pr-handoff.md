@@ -1,4 +1,32 @@
-# Draft review handoff
+# Integration handoff and history
+
+## Published-contract upgrade
+
+The owner subsequently authorized package publication, registry consumer
+upgrades and green-checked source merges. Notification-contract **0.0.4** was
+published from action-kit main `a03da9366e6483040d504a742c1a95413c1202cb` by
+[run 43622416072](https://github.com/commercekit-tools/action-kit/actions/runs/43622416072),
+without creating Git release tags. Notify was upgraded from the actual registry
+package and merged at `832f6bd04b1889d0d3b4d47a1b2dc0e110985c73` after quality
+and CodeQL passed.
+
+This cleanup upgrade pins that published version, regenerates its normal
+lockfile/bundle and verifies a nonempty validated cleanup notification. Candidate
+source preparation is no longer a normal CI/coverage requirement. The local
+sandbox source used by CI is merged commit
+`4af998a4783ffa54dd5d7835bfc0dcc4dd382e14`; no unpublished fixture patch is
+needed. Current validation results belong in
+[validation-report.md](validation-report.md), and remaining SAP/Action-release
+gates are in [release-readiness.md](release-readiness.md).
+
+The action is still unreleased. Source/package integration does not authorize
+production deletion. This upgrade must not create release tags, deploy or enable
+real deletion.
+
+## Original draft-review record
+
+The following is the historical pre-publication handoff. Its draft-only status,
+0.0.3 notification gate and initial branch heads are not current release claims.
 
 The owner authorized feature-branch pushes and draft PR creation on 2026-11-14.
 This does not authorize merges, publication, tags or real deletion.

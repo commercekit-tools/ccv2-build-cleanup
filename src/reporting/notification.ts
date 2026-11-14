@@ -1,4 +1,9 @@
-import * as contract from "@commercekit-tools/notification-contract";
+import {
+  createBuildCleanupEvent,
+  extractSafeGitHubContext,
+  sanitizeBoundedText,
+  validateNotificationEvent,
+} from "@commercekit-tools/notification-contract";
 
 /** Producer projection only. Validation and the event schema belong to action-kit. */
 export interface CleanupNotificationInput {
@@ -21,33 +26,25 @@ export interface CleanupNotificationInput {
   error?: { code: string };
 }
 
-/** Published 0.0.3 cannot represent cleanup. Never substitute an unrelated event. */
+/** The pinned published contract owns cleanup creation and validation. */
 export function createCleanupNotification(
   result: CleanupNotificationInput,
   env: Readonly<Record<string, string | undefined>> = process.env,
   secrets: readonly string[] = [],
-): string | undefined {
-  if (
-    !("createBuildCleanupEvent" in contract) ||
-    typeof contract.createBuildCleanupEvent !== "function"
-  )
-    return undefined;
-  const safe = (value: string) =>
-    contract.sanitizeBoundedText(value, 128, secrets);
-  const event: unknown = contract.createBuildCleanupEvent({
+): string {
+  const safe = (value: string) => sanitizeBoundedText(value, 128, secrets);
+  const event: unknown = createBuildCleanupEvent({
     status: ["dry-run", "no-op", "success"].includes(result.status)
       ? "success"
       : "failure",
     occurredAt: result.runStartedAt,
     context: Object.fromEntries(
-      Object.entries(contract.extractSafeGitHubContext(env)).map(
-        ([key, value]) => [
-          key,
-          typeof value === "string"
-            ? contract.sanitizeBoundedText(value, 2048, secrets)
-            : value,
-        ],
-      ),
+      Object.entries(extractSafeGitHubContext(env)).map(([key, value]) => [
+        key,
+        typeof value === "string"
+          ? sanitizeBoundedText(value, 2048, secrets)
+          : value,
+      ]),
     ),
     env: {},
     data: {
@@ -58,7 +55,7 @@ export function createCleanupNotification(
         : {}),
       retentionDays: result.policy.retentionDays,
       keepLatest: result.policy.keepLatest,
-      cleanupStatus: contract.sanitizeBoundedText(result.status, 100, secrets),
+      cleanupStatus: sanitizeBoundedText(result.status, 100, secrets),
       scannedCount: result.counts.scanned,
       eligibleCount: result.counts.eligible,
       plannedCount: result.counts.planned,
@@ -71,11 +68,7 @@ export function createCleanupNotification(
       ...(result.error
         ? {
             error: {
-              code: contract.sanitizeBoundedText(
-                result.error.code,
-                100,
-                secrets,
-              ),
+              code: sanitizeBoundedText(result.error.code, 100, secrets),
               message:
                 "Cleanup did not complete successfully. Review the sanitized report.",
             },
@@ -83,5 +76,5 @@ export function createCleanupNotification(
         : {}),
     },
   });
-  return JSON.stringify(contract.validateNotificationEvent(event));
+  return JSON.stringify(validateNotificationEvent(event));
 }

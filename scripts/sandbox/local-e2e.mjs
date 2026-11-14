@@ -5,18 +5,24 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import https from "node:https";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { parseNotificationEventJson } from "@commercekit-tools/notification-contract";
+import contractMetadata from "@commercekit-tools/notification-contract/package.json" with { type: "json" };
+import contractSchema from "@commercekit-tools/notification-contract/schema" with { type: "json" };
 
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const checkout = process.env.CLEANUP_SANDBOX_PATH;
 assert(
   checkout,
-  "Set CLEANUP_SANDBOX_PATH to the isolated sandbox candidate checkout.",
+  "Set CLEANUP_SANDBOX_PATH to the isolated checkout of the pinned sandbox commit.",
 );
-const bundle = process.env.CLEANUP_ACTION_BUNDLE ?? join(root, "dist/index.js");
-const candidateContract = process.env.CLEANUP_EVENT_CONTRACT_PATH
-  ? await import(pathToFileURL(process.env.CLEANUP_EVENT_CONTRACT_PATH).href)
-  : undefined;
+const bundle = join(root, "dist/index.js");
+assert.equal(contractMetadata.version, "0.0.4");
+assert(
+  contractSchema.properties.eventType.enum.includes(
+    "ccv2.build-cleanup.completed",
+  ),
+);
 const app = join(checkout, "apps/ccv2");
 const temp = await mkdtemp(join(tmpdir(), "cleanup-sandbox-e2e-"));
 const port = Number(process.env.CLEANUP_SANDBOX_PORT ?? "18787");
@@ -177,20 +183,56 @@ async function action(run, inputs = {}, expectedExit = 0) {
       `Unexpected bundled action exit code: ${result.status}, ${result.error?.code ?? "no error code"}, HTTP ${result.error?.status}; counters ${JSON.stringify(observed.body?.faultCounters)}.`,
     );
   }
-  if (candidateContract) {
-    const event = candidateContract.parseNotificationEventJson(
-      outputs["notification-event"],
+  const notification = outputs["notification-event"];
+  assert(
+    notification,
+    "The published-contract bundle must emit a notification event.",
+  );
+  assert(Buffer.byteLength(notification, "utf8") <= 65536);
+  for (const secret of [...Object.values(run.credentials), run.controlToken])
+    assert(
+      !notification.includes(secret),
+      "Notification output must not contain credentials or control tokens.",
     );
-    assert.equal(event.eventType, "ccv2.build-cleanup.completed");
-    assert.equal(event.data.scannedCount, result.counts.scanned);
-    assert.equal(event.data.cleanupStatus, result.status);
-    assert.equal(event.data.mode, result.dryRun ? "dry-run" : "apply");
-  } else
-    assert.equal(
-      outputs["notification-event"],
-      "",
-      "Published contract has no cleanup event.",
-    );
+  const event = parseNotificationEventJson(notification, { maxBytes: 65536 });
+  assert.equal(event.schemaVersion, 1);
+  assert.equal(event.eventType, "ccv2.build-cleanup.completed");
+  assert.equal(event.source.component, "ccv2-build-cleanup");
+  assert.equal(event.occurredAt, result.runStartedAt);
+  assert.equal(
+    event.status,
+    ["dry-run", "no-op", "success"].includes(result.status)
+      ? "success"
+      : "failure",
+  );
+  assert.equal(event.data.mode, result.dryRun ? "dry-run" : "apply");
+  assert.equal(event.data.cleanupStatus, result.status);
+  assert.equal(event.data.subscriptionCode, result.scope.subscriptionCode);
+  assert.equal(event.data.applicationCode, result.scope.applicationCode);
+  assert.equal(event.data.retentionDays, result.policy.retentionDays);
+  assert.equal(event.data.keepLatest, result.policy.keepLatest);
+  assert.equal(event.data.durationMs, result.durationMs);
+  for (const [eventCount, resultCount] of Object.entries({
+    scannedCount: "scanned",
+    eligibleCount: "eligible",
+    plannedCount: "planned",
+    deletionRequestedCount: "deletionRequested",
+    skippedCount: "skipped",
+    failedCount: "failed",
+    unknownCount: "unknown",
+    deferredCount: "deferred",
+  }))
+    assert.equal(event.data[eventCount], result.counts[resultCount]);
+  assert.equal(event.data.error?.code, result.error?.code);
+  assert.equal(
+    event.context?.repository,
+    "commercekit-tools/ccv2-build-cleanup",
+  );
+  assert.equal(event.context?.runId, "42");
+  assert.equal(
+    event.context?.runUrl,
+    "https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/42",
+  );
   const report = JSON.parse(await readFile(outputs["report-path"], "utf8"));
   assert.deepEqual(report.counts, result.counts);
   assert(
@@ -414,7 +456,7 @@ try {
   ]);
   assert((await action(refresh)).state.faultCounters["issueToken:"] >= 2);
   process.stdout.write(
-    "PASS: bundled action local sandbox; OAuth, refresh, retries, 105-build pagination, protections, repeat run, exact scope, invalid fields, instability, authorization, outputs, and zero target mutations.\n",
+    "PASS: bundled action local sandbox; OAuth, refresh, retries, 105-build pagination, protections, repeat run, exact scope, invalid fields, instability, authorization, valid published cleanup notifications, outputs, and zero target mutations.\n",
   );
 } finally {
   for (const run of runs) {

@@ -132,3 +132,29 @@ The owner subsequently authorized pushing feature branches and opening draft
 PRs. See [pr-handoff.md](pr-handoff.md) for current heads, rebased bases and
 additional Notify schema/fixture validation. The results above remain the
 recorded local implementation validation; they do not claim remote CI status.
+
+## PR #1 security-check remediation — 2026-11-14
+
+The first hosted run found a full-dependency audit failure and two CodeQL
+incomplete-escaping findings. These were separate from the earlier, narrower
+production-only audit result.
+
+- Pin vulnerable development-tool `minimatch` instances to published **11.0.1**
+  using an exact pnpm override for the advisory range. The regenerated lockfile
+  records its integrity and dependencies. This follows
+  [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249);
+  Node 24 satisfies the patched release's engine range. No advisory is ignored
+  and no audit severity/dependency scope is weakened. The package audit script
+  now explicitly runs the same full audit used by CI.
+- Replace the URL-escaping callback's partial replacement chain with a direct
+  parenthesis-to-percent-encoding mapping inside the existing global match.
+  Regression coverage checks repeated/nested parentheses and preserves already
+  encoded URL content. The shared HTTPS link validator is still used.
+- **PASS:** frozen installation; full `pnpm audit` (no known vulnerabilities);
+  formatting, lint, strict types; **302 tests in 14 files with zero skips and
+  100% statement/branch/function/line coverage** (462 statements, 449 branches,
+  88 functions, 415 lines), including actual normal-bundle local sandbox E2E.
+  Fresh dist byte-consistency, metadata/actionlint and public scan passed.
+- Hosted validate/CodeQL must rerun on the pushed fix before readiness is claimed.
+  SAP eligibility, notification publication and all live-operation gates remain
+  unchanged. The four implementation PRs stay draft.

@@ -193,7 +193,7 @@ export function summary(value: Result, workflowUrl?: string): string {
     try {
       safeWorkflowUrl = validateGitHubRunUrl(workflowUrl).href.replace(
         /[()]/g,
-        (c) => encodeURIComponent(c).replace("(", "%28").replace(")", "%29"),
+        (c) => (c === "(" ? "%28" : "%29"),
       );
     } catch {
       /* Invalid references are omitted from the summary. */

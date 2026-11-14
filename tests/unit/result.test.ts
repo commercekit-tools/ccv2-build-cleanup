@@ -271,6 +271,19 @@ describe("sanitized reports", () => {
       "all applications",
     );
   });
+  it("escapes every parenthesis in validated workflow links without double-encoding URLs", () => {
+    const value = result(input, execution(), start, start, safe());
+    const url =
+      "https://github.enterprise.example/org/repo/actions/runs/42?target=(one)(two)&nested=((three))&encoded=%28four%29";
+    const expected =
+      "https://github.enterprise.example/org/repo/actions/runs/42?target=%28one%29%28two%29&nested=%28%28three%29%29&encoded=%28four%29";
+    const markdown = summary(value, url);
+    expect(markdown).toContain(`[Workflow run](${expected})`);
+    expect(markdown).not.toContain(url);
+    expect(markdown.match(/\[Workflow run\]\(([^()\n]+)\)/)?.[1]).toBe(
+      expected,
+    );
+  });
   it("writes controlled private full reports and handles filesystem failures", async () => {
     const directory = await mkdtemp(join(tmpdir(), "cleanup-report-test-"));
     try {

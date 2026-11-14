@@ -15,9 +15,10 @@
     "actionKit": "277 tests passed; typecheck passed",
     "notify": "88 tests; typecheck, schema parity with 17 fixtures, golden provider snapshots, lint, format, public scan and candidate bundle passed; normal registry rebuild blocked until compatible publication",
     "cleanupAdapter": "17 tests passed; 100% statement/branch/function/line coverage against exact candidate tarball",
-    "combinedCleanup": "301 tests passed, no skipped; 100% all coverage metrics including real local bundle E2E",
+    "combinedCleanup": "302 tests passed, no skipped; 100% all coverage metrics including real local bundle E2E after PR1 security remediation",
     "automatedPreparation": "PASS: verified base, patch, frozen install, contract build, full typecheck, 277 action-kit tests, npm pack, isolated tarball install",
-    "candidateBundle": "PASS actual separate bundle with exact packed candidate event validation and zero target mutations"
+    "candidateBundle": "PASS actual separate bundle with exact packed candidate event validation and zero target mutations",
+    "fullDependencyAudit": "PASS: no known vulnerabilities after exact minimatch11.0.1 security override; no exceptions or reduced audit scope"
   },
   "upstreamWorkingTrees": "unchanged; edits only in isolated /private/tmp candidate clones",
   "branches": [
@@ -48,8 +49,8 @@
   },
   "sandboxBaseSha": "ec545e81f0d3f7151572d925905ebdabe84d8f47",
   "sandboxCandidateSha": "04fe32f7b1233eb6f080bf8debd47c54c371c8a7",
-  "normalCleanupBundleSha256": "dd19eb9a0fd22bf45e0c863deefff6a3bbcd684d866f1e53dfbce6b8a1ee23f1",
-  "candidateCleanupBundleSha256": "5fc2da5c1e907d3e77433ac1bf5b1a9f67970c59d829307a9202a070ead70e39",
+  "normalCleanupBundleSha256": "857e04451c56b3c50f24ef70265ce725bfd585d121548cecc3020c2aa2886d20",
+  "candidateCleanupBundleSha256": "439f6e46200fce3ce1e80be6eedeffa969c267bc94589398ee7cdec60d6580c2",
   "pushedBranches": {
     "cleanup": {
       "branch": "feat/initial-cleanup",

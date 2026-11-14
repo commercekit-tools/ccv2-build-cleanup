@@ -1,6 +1,6 @@
 # Validation report
 
-## Published notification-contract adoption — 2026-11-14
+## Published notification-contract adoption and post-merge verification — 2026-11-14
 
 Status vocabulary: PASS, FAIL, BLOCKED, NOT RUN. This report records the current
 registry-backed cleanup upgrade. The action remains unreleased. Passing tests
@@ -11,6 +11,13 @@ retains the original candidate validation and PR #1 security remediation evidenc
 ## Source and dependency provenance
 
 - Cleanup upgrade base: `ae42942c18f2ca48f6b4286c31089cf629865796`.
+- [Cleanup PR #3](https://github.com/commercekit-tools/ccv2-build-cleanup/pull/3)
+  merged at **2026-11-14 18:05:58 UTC** as
+  `ce2f9b7722c1bd04955f07d8f3b11ea0f08ab257`; this exact main commit is
+  the subject of the post-merge verification below.
+- Reviewed PR head: `6a7b47bc892d3cf8a4efa10f82ebb52dfa82e208`;
+  consumer examples pin validated implementation commit
+  `d7363059d4ef523a40e8df912c03ee1215200224`.
 - Published notification-contract **0.0.4**, exact registry dependency;
   ccv2-client remains **0.0.3**, actions/core **3.0.1**.
 - Contract publication source: action-kit
@@ -34,21 +41,78 @@ candidate tarballs or invented versions are required. The cleanup public factory
 and shared parser/schema are tested from the actual installed package. Historical
 patches/provenance remain archived; executable candidate preparation was removed.
 
-## Executed checks
+## Final hosted evidence
+
+**PASS:** both post-merge workflows completed successfully for the **push** to
+`refs/heads/main` at `ce2f9b7722c1bd04955f07d8f3b11ea0f08ab257`.
+These are main-branch results, distinct from the pre-merge PR checks.
+
+| Check                 | Final evidence                                                                                                                                                   | Job/check completion (UTC) |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Pre-merge `validate`  | [Run 43624527452](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43624527452), PASS on reviewed PR head                                    | 2026-11-14 18:04:59        |
+| Pre-merge CodeQL      | [Run 43624527425](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43624527425), PASS on reviewed PR head; separate CodeQL check also passed | 2026-11-14 18:05:17        |
+| Post-merge `validate` | [Run 43624684600](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43624684600), job `validate` / `132537784174`, PASS on exact merged main  | 2026-11-14 18:06:45        |
+| Post-merge CodeQL     | [Run 43624684609](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43624684609), job `analyze` / `132537784276`, PASS on exact merged main   | 2026-11-14 18:07:13        |
+
+The main validation log independently confirms **300/300 tests in 14/14 files,
+zero skipped, and 100% statement/branch/function/line coverage**. Frozen cleanup
+installation used Node24.21.0 and pnpm12.6.0; the existing sandbox used its own
+pinned pnpm12.11.2. Format, lint, strict types, actual local sandbox E2E,
+committed-bundle consistency, metadata/actionlint, public scan and full dependency
+audit all passed. The audit reports **no known vulnerabilities**. Trusted-main
+package-read access is now proven by the successful frozen registry install.
+
+The final `uses: ./` smoke check intentionally supplies malformed retention
+input and synthetic credentials. The expected handled action failure is
+continued, then the next successful step asserts cleanup-status=failed,
+dry-run=true and zero accepted deletion requests. Its actual notification parses
+through the published shared contract with eventType=`ccv2.build-cleanup.completed`,
+status=failure, mode=dry-run and deletionRequestedCount=0. Workflow context names
+`refs/heads/main`, the exact merged commit and this main run. This is useful
+failure-path evidence; it is not a SAP connection or live deletion test.
+
+CodeQL's processed main analysis **2168255995**, created at
+**2026-11-14 18:06:52 UTC**, names the exact merged commit and `refs/heads/main`.
+The API reports **87 rules, zero results, and empty error/warning fields**.
+The open-alert query scoped to main returned an empty list. Successful SARIF
+upload is also present in the run log.
+
+Verification used authenticated, read-only GitHub CLI calls with stale token
+environment overrides removed (`env -u GITHUB_TOKEN -u GH_TOKEN gh ...`):
+
+- `gh api repos/commercekit-tools/ccv2-build-cleanup/branches/main` and
+  `gh run list --repo commercekit-tools/ccv2-build-cleanup --branch main` to
+  match the current main SHA with push-triggered runs.
+- `gh run view 43624684600` and `gh run view 43624684609`, each with
+  `--repo commercekit-tools/ccv2-build-cleanup`, JSON job metadata and `--log`,
+  to verify conclusions, timestamps, actual steps and logged results.
+- The exact merged commit's `check-runs` API to confirm successful completed
+  `validate` and `analyze` checks.
+- The `code-scanning/analyses` API scoped to `refs/heads/main` and the
+  `code-scanning/alerts` API scoped to main/state=open to verify processing
+  and current findings. No credentials or raw logs are committed.
+
+## Executed local checks
+
+The local commands below were run during the implementation upgrade. This
+follow-up rechecked the completed hosted main runs and changed only this report;
+`pnpm format:check`, `pnpm scan:public` and `git diff --check` passed for the
+report update. No runtime bundle or production logic changed.
 
 Commands ran in the isolated upgrade checkout with Node24 first on PATH.
 `CLEANUP_SANDBOX_PATH` below points to the isolated existing sandbox checkout.
 
-| Command                                                                                         | Status                      | Evidence                                                                                                                   |
-| ----------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                                                                | PASS                        | Actual registry package and integrity-locked resolution; supply-chain policy checks passed                                 |
-| `pnpm bundle`                                                                                   | PASS                        | Regenerated standalone runtime bundle and licenses using ncc0.45.0                                                         |
-| `CLEANUP_SANDBOX_PATH=<checkout> pnpm quality`                                                  | PASS                        | Formatting, lint, strict types, full coverage suite, byte-consistent dist, metadata, public scan and full dependency audit |
-| `actionlint .github/workflows/*.yml examples/*.yml`                                             | PASS                        | Workflow/action examples validated; third-party immutable pins retained                                                    |
-| `CLEANUP_SANDBOX_PATH=<checkout> CLEANUP_SANDBOX_PORT=18819 node scripts/sandbox/local-e2e.mjs` | PASS                        | Separate actual-bundle sandbox run with published-contract output validation                                               |
-| Focused unit/contract notification suite                                                        | PASS                        | 16 cases against actual published package, including redaction and all cleanup outcomes/modes                              |
-| `git diff --check`                                                                              | PASS                        | No whitespace errors                                                                                                       |
-| Hosted `validate` and CodeQL on final PR head                                                   | NOT RUN at report recording | Must both pass before merge; final PR checks record authoritative hosted results                                           |
+| Command                                                                                         | Status | Evidence                                                                                                                   |
+| ----------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                                                | PASS   | Actual registry package and integrity-locked resolution; supply-chain policy checks passed                                 |
+| `pnpm bundle`                                                                                   | PASS   | Regenerated standalone runtime bundle and licenses using ncc0.45.0                                                         |
+| `CLEANUP_SANDBOX_PATH=<checkout> pnpm quality`                                                  | PASS   | Formatting, lint, strict types, full coverage suite, byte-consistent dist, metadata, public scan and full dependency audit |
+| `actionlint .github/workflows/*.yml examples/*.yml`                                             | PASS   | Workflow/action examples validated; third-party immutable pins retained                                                    |
+| `CLEANUP_SANDBOX_PATH=<checkout> CLEANUP_SANDBOX_PORT=18819 node scripts/sandbox/local-e2e.mjs` | PASS   | Separate actual-bundle sandbox run with published-contract output validation                                               |
+| Focused unit/contract notification suite                                                        | PASS   | 16 cases against actual published package, including redaction and all cleanup outcomes/modes                              |
+| `git diff --check`                                                                              | PASS   | No whitespace errors                                                                                                       |
+| Hosted `validate` and CodeQL on final PR head                                                   | PASS   | Successful exact-head checks before PR #3 merge; linked above                                                              |
+| Post-merge `validate` and CodeQL on main                                                        | PASS   | Independent push runs and processed analysis on the exact merged commit; linked above                                      |
 
 Full suite: **300 tests passed in 14 files; zero skipped**.
 Coverage: **100% statements (458/458), branches (441/441), functions (88/88),
@@ -106,18 +170,40 @@ read/dry-run validation or DELETE. Dedicated sandbox process-cancellation and
 network-timeout E2E fixtures are not claimed; bounded cancellation/deadline and
 network ambiguity remain covered in orchestration/shared integration tests.
 
-## Remaining gates and permitted merge
+## Remaining blockers and unexecuted validation
 
-The published-contract compatibility blocker is resolved. Required hosted checks
-must be green on the exact final PR head before the separately authorized source
-merge. The final PR links its check runs and reviewed immutable source commit.
+The published-contract compatibility gate, trusted-main package access and
+pre-/post-merge hosted validation are **PASS**. PR #3 is merged. An unreleased
+source merge does not clear the remaining release or destructive-operation gates:
 
-**BLOCKED for Action release or real apply:** authoritative SAP eligibility and
-operational-reference evidence, owner review, package access for development CI,
-and separately authorized controlled non-production validation. The full runbook
-is in [release-readiness.md](release-readiness.md). Fork credentials must not be
-exposed through privileged workflows. Consumers need no package credentials
-because runtime dependencies are bundled.
+- **BLOCKED — SAP eligibility evidence:** supported last-modification evidence
+  or authoritative API rejection of ineligible deletes before acceptance is
+  still missing. Completion time and simulator internals do not prove the
+  four-hour condition. The production adapter's `eligibilityVerified=false`
+  gate remains closed, without a bypass.
+- **BLOCKED — operational protection review:** owners must validate supported
+  deployment/green/canary/rollback and snapshot/backup reference coverage for
+  the target subscription. Incomplete protection evidence or unstable/incomplete
+  inventory block apply. Pagination remains non-atomic and preflight cannot
+  remove the check/delete race.
+- **BLOCKED — owner approval and controlled non-production validation:** real
+  SAP read-only/dry-run verification, candidate/protection review and a bounded
+  destructive test of one explicitly approved disposable build require the
+  separate authorizations described in the
+  [release-readiness runbook](release-readiness.md). None was performed here.
+- **BLOCKED — owner governance/setup before release:** review ownership and
+  consumer configuration and enforce `validate`/CodeQL through appropriate
+  branch protections or rulesets. The inspected main branch metadata reports
+  `protected=false`; no repository settings were changed. Fork/package-access
+  limitations remain, despite trusted-main access passing. Never expose
+  privileged credentials through `pull_request_target`.
+- **NOT RUN:** hosted sandbox smoke, live provider webhook delivery and all real
+  SAP validation/deletion. Dedicated process-cancellation and network-timeout
+  sandbox E2E fixtures remain unexecuted as noted above. Existing unit/integration
+  coverage does not turn those into completed live tests.
+
+Consumers need no package credentials because runtime dependencies are bundled.
+Sandbox and static-analysis success are not production SAP safety guarantees.
 
 This upgrade creates no release tags, deployment, production enablement or real
 SAP deletion. Previously authorized dependency publication is recorded only as

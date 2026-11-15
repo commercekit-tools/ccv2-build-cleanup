@@ -1,5 +1,10 @@
 # Notification integration evidence
 
+Current normal development uses published notification-contract **0.0.6**,
+registry installation and the committed bundle. See
+[consistent-reporting.md](../docs/consistent-reporting.md) for current evidence.
+The following 0.0.5/source-candidate material is historical only.
+
 **Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
 merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
 quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)

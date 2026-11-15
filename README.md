@@ -1,13 +1,11 @@
 # CommerceKit CCv2 Build Cleanup
 
-> **Notification-contract 0.0.5 is published.** Its authorized package-only
-> publication enables cleanup success/warning/failure detail and redacted input
-> context. Cleanup's exact registry install, lockfile, bundle and local validation
-> passed, including required hosted validation and CodeQL. Compatible Notify #18
-> is merged and pinned in the notification example.
-> See [notification validation](docs/notification-context.md). Cleanup
-> inputs, retention rules, default dry-run and real-SAP eligibility protections
-> are unchanged.
+> **Shared reporting uses published notification-contract 0.0.6.** The normal
+> registry dependency, lockfile and standalone bundle include consistent status
+> icons, input/result/safety tables and safe issue explanations. Read
+> [registry validation](docs/consistent-reporting.md) and the remaining
+> [production gates](docs/release-readiness.md). Default dry-run and deletion
+> protections remain unchanged.
 
 Unreleased TypeScript GitHub Action for planning safe SAP Commerce Cloud build
 retention. It runs once; GitHub Actions owns the schedule. Node 24 and all runtime
@@ -20,7 +18,7 @@ Candidates receive `eligibility-unverified`; no bypass input exists. See
 
 The action consumes the existing `@commercekit-tools/ccv2-client@0.0.3` for OAuth,
 token caching/refresh, endpoint restrictions and safe transport. It consumes
-`@commercekit-tools/notification-contract@0.0.5` for cleanup-event factories,
+`@commercekit-tools/notification-contract@0.0.6` for cleanup-event factories,
 validation, safe context, links and sanitization. OAuth/HTTP infrastructure and
 webhook delivery are not implemented here. [Integration audit](docs/integration-audit.md) records exact
 source SHAs, published-package integrity and historical candidate provenance.
@@ -155,7 +153,7 @@ report/notification errors cannot erase the original outcome.
 
 Use [cleanup-with-notifications.yml](examples/cleanup-with-notifications.yml).
 The action creates and validates `ccv2.build-cleanup.completed` through the exact
-published `notification-contract@0.0.5` package. All notifications include the
+published `notification-contract@0.0.6` package. All notifications include the
 14 input names, effective settings when valid, validation/truncation flags,
 scope, policy, counts and duration. Authentication values are always
 `[REDACTED]`; other fields use shared known-secret/JWT sanitization before
@@ -170,14 +168,14 @@ Notification severity does not change the Action's failure behavior.
 The example passes `notification-event` to Notify's `event-json`, uses `always()`
 with a nonempty-event guard and keeps webhook secrets only on Notify. It pins
 compatible unreleased Notify commit
-[`6331ff4a60956a3a2b546e84d737c9338ca46bda`](https://github.com/commercekit-tools/notify/commit/6331ff4a60956a3a2b546e84d737c9338ca46bda).
+[`abc752ead104a6e5153c5f166d04ee5e595e0ca6`](https://github.com/commercekit-tools/notify/commit/abc752ead104a6e5153c5f166d04ee5e595e0ca6).
 Notify owns Slack and Teams Workflows rendering/delivery. Notification failure
 does not hide cleanup failure. Older Notify versions can reject cleanup warning
 events. No Action release or version tag is implied by these commits.
 
 Normal validation must use the registry-installed package and the actual bundled
-action against the existing local sandbox; the local 0.0.5 rerun passed. Hosted
-validation and CodeQL passed on the implementation commit pinned by the examples.
+action against the existing local sandbox. Current 0.0.6 results and exact
+validation references are recorded in [validation-report.md](docs/validation-report.md).
 [Historical integration artifacts](integration/README.md)
 retain the pre-publication patches and candidate evidence; candidate source
 preparation, dependency aliases and packed-source test bundles are no longer

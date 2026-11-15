@@ -38,7 +38,7 @@ jobs:
           NODE
       # Immutable unreleased implementation commit, validated locally.
       # SAP eligibility and notification publication gates remain blocked.
-      - uses: commercekit-tools/ccv2-build-cleanup@ac5cbcc2fdf1054a891a7a00e1527299b4627130
+      - uses: commercekit-tools/ccv2-build-cleanup@82ef04cc9392cf08188873b43d1ceedcd8ed6d4c
         id: cleanup
         with:
           token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}

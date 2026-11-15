@@ -3,7 +3,7 @@ import {
   sanitizeBoundedText,
   sanitizeErrorMessage,
   extractSafeGitHubContext,
-  validateGitHubRunUrl,
+  renderActionSummary,
   redactJwtLikeTokens,
   type BuildCleanupInputSnapshot,
 } from "@commercekit-tools/notification-contract";
@@ -11,6 +11,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { validateManagementApiBaseUrl } from "@commercekit-tools/ccv2-client";
 import type { snapshotInputContext } from "./input-context.js";
+import { describeCleanupOutcome } from "./cleanup-issues.js";
 import type { Inputs } from "../inputs.js";
 import type { Execution, ExecutionDecision } from "../cleanup/execute.js";
 export class Sanitizer {
@@ -202,39 +203,87 @@ export function inlineResult(value: Result, max = 65536): string {
   return render(low);
 }
 
-const escape = (text: string) =>
-  text
-    .replace(/[&<>"'`|[\]*_\\]/g, (c) => `&#${c.charCodeAt(0)};`)
-    .replace(/[\r\n]/g, " ");
+/** Cleanup projection only; shared rendering owns style, escaping and redaction. */
 export function summary(value: Result, workflowUrl?: string): string {
-  const { counts: c } = value;
-  let safeWorkflowUrl: string | undefined;
-  if (workflowUrl) {
-    try {
-      safeWorkflowUrl = validateGitHubRunUrl(workflowUrl).href.replace(
-        /[()]/g,
-        (c) => (c === "(" ? "%28" : "%29"),
-      );
-    } catch {
-      /* Invalid references are omitted from the summary. */
-    }
-  }
-  const inputTable = value.inputs
-    ? `\n\n### Cleanup inputs\n\nValidated: ${value.inputsValidated}; truncated: ${value.inputsTruncated}. Authentication values are redacted.\n\n| Input | Value |\n| --- | --- |\n${Object.entries(
-        value.inputs,
-      )
-        .map(([name, setting]) => `| ${escape(name)} | ${escape(setting)} |`)
-        .join("\n")}\n`
-    : "";
-  return `## ${value.dryRun ? "DRY RUN" : "APPLY"} — CCv2 build cleanup\n\nStatus: **${escape(value.status)}**\n\nScope: ${escape(value.scope.subscriptionCode)} / ${escape(value.scope.applicationCode ?? "all applications")}\n\nRetention: ${value.policy.retentionDays} days AND outside latest ${value.policy.keepLatest}; cap ${value.policy.maxDeletions}.\n\nInventory / protection / eligibility complete: ${value.completeness.inventory} / ${value.completeness.protection} / ${value.completeness.eligibility}\n\nScanned ${c.scanned}; eligible ${c.eligible}; planned ${c.planned}; deletion requests accepted ${c.deletionRequested}; protected ${c.protected}; deferred ${c.deferred}; failed ${c.failed}; unknown ${c.unknown}.\n\n| Build | Disposition | Reasons |\n| --- | --- | --- |\n${value.decisions
-    .slice(0, 50)
-    .map(
-      (d) =>
-        `| ${escape(d.code)} | ${escape(d.disposition)} | ${d.reasons.map(escape).join(", ")} |`,
-    )
-    .join(
-      "\n",
-    )}\n\n${value.decisions.length > 50 ? "Decision table truncated; see report artifact.\n" : ""}${inputTable}Full sanitized detail is at the report-path output; upload it as a workflow artifact for durable access.\n${safeWorkflowUrl ? `\n[Workflow run](${safeWorkflowUrl})\n` : ""}`;
+  const outcome = describeCleanupOutcome(value);
+  const mode = value.dryRun ? "DRY RUN" : "APPLY";
+  return renderActionSummary({
+    title: `CCv2 build cleanup — ${mode}`,
+    status: outcome.status,
+    description:
+      "Counts represent accepted deletion requests; physical removal is not confirmed. " +
+      (value.decisions.length > 50
+        ? "Decision table truncated; see report artifact. "
+        : "") +
+      "Full sanitized detail is at the report-path output; upload it as a workflow artifact for durable access.",
+    facts: [
+      { label: "Cleanup status", value: value.status },
+      { label: "Mode", value: mode },
+      { label: "Subscription", value: value.scope.subscriptionCode },
+      {
+        label: "Application",
+        value: value.scope.applicationCode ?? "all applications",
+      },
+      { label: "Retention days", value: value.policy.retentionDays },
+      { label: "Keep latest", value: value.policy.keepLatest },
+      { label: "Maximum deletion requests", value: value.policy.maxDeletions },
+      { label: "Duration (ms)", value: value.durationMs },
+      { label: "Scanned", value: value.counts.scanned },
+      { label: "Eligible", value: value.counts.eligible },
+      { label: "Planned", value: value.counts.planned },
+      {
+        label: "Deletion requests accepted",
+        value: value.counts.deletionRequested,
+      },
+      { label: "Skipped", value: value.counts.skipped },
+      { label: "Protected", value: value.counts.protected },
+      {
+        label: "Blocked",
+        value: value.decisions.filter(
+          (decision) => decision.disposition === "blocked",
+        ).length,
+      },
+      { label: "Deferred", value: value.counts.deferred },
+      { label: "Failed", value: value.counts.failed },
+      { label: "Unknown", value: value.counts.unknown },
+    ],
+    ...(value.inputs
+      ? {
+          inputContext: {
+            inputs: { ...value.inputs },
+            inputsValidated: value.inputsValidated ?? false,
+            inputsTruncated: value.inputsTruncated ?? false,
+          },
+        }
+      : {}),
+    ...(outcome.error ? { error: outcome.error } : {}),
+    issues: outcome.issues,
+    sections: [
+      {
+        title: "Safety evidence",
+        headers: ["Safety check", "Complete"],
+        rows: [
+          ["Inventory", value.completeness.inventory],
+          ["Operational protection", value.completeness.protection],
+          ["Deletion eligibility", value.completeness.eligibility],
+        ],
+      },
+      {
+        title: "Build decisions",
+        headers: ["Build", "Disposition", "Reasons"],
+        rows: value.decisions
+          .slice(0, 50)
+          .map((decision) => [
+            decision.code,
+            decision.disposition,
+            decision.reasons.join(", "),
+          ]),
+      },
+    ],
+    ...(workflowUrl
+      ? { links: [{ label: "Workflow run", url: workflowUrl }] }
+      : {}),
+  });
 }
 export async function writeReport(
   value: Result,

@@ -17,7 +17,7 @@ assert(
   "Set CLEANUP_SANDBOX_PATH to the isolated checkout of the pinned sandbox commit.",
 );
 const bundle = join(root, "dist/index.js");
-assert.equal(contractMetadata.version, "0.0.5");
+assert.equal(contractMetadata.version, "0.0.6");
 assert(
   contractSchema.properties.eventType.enum.includes(
     "ccv2.build-cleanup.completed",
@@ -264,11 +264,45 @@ async function action(run, inputs = {}, expectedExit = 0) {
   );
   const report = JSON.parse(await readFile(outputs["report-path"], "utf8"));
   assert.deepEqual(report.counts, result.counts);
+  const markdown = await readFile(summary, "utf8");
   assert(
-    (await readFile(summary, "utf8")).includes(
-      inputs["dry-run"] === "false" ? "APPLY" : "DRY RUN",
+    markdown.includes(inputs["dry-run"] === "false" ? "APPLY" : "DRY RUN"),
+  );
+  assert(
+    markdown.includes(
+      event.status === "warning"
+        ? "⚠️"
+        : event.status === "failure"
+          ? "❌"
+          : "✅",
     ),
   );
+  for (const name of Object.keys(result.inputs))
+    assert(markdown.includes(name));
+  for (const label of [
+    "Scanned",
+    "Eligible",
+    "Planned",
+    "Deletion requests accepted",
+    "Skipped",
+    "Protected",
+    "Blocked",
+    "Deferred",
+    "Failed",
+    "Unknown",
+    "Safety evidence",
+  ])
+    assert(markdown.includes(label));
+  for (const issue of event.data.issues ?? [])
+    assert(markdown.includes(issue.code));
+  for (const secret of [
+    run.credentials.clientId,
+    run.credentials.clientSecret,
+    run.credentials.resource,
+    run.credentials.tokenUrl,
+    run.controlToken,
+  ])
+    assert(!markdown.includes(secret));
   for (const secret of [run.credentials.clientSecret, run.controlToken])
     assert(!JSON.stringify(report).includes(secret));
   const state = (

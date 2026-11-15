@@ -1,5 +1,16 @@
 # Release readiness
 
+## Shared summary renderer candidate gate
+
+**BLOCKED — normal registry rebuild:** consistent GitHub run-summary formatting
+requires the new public `renderActionSummary` helper in the existing
+notification-contract package's unpublished 0.0.6 candidate. The normal manifest,
+lockfile and committed bundle deliberately remain on published 0.0.5. Do not
+publish, replace registry versions with local links, or claim candidate tests as
+a reproducible registry build. [Candidate evidence](consistent-reporting.md)
+records isolated validation separately. All production SAP eligibility,
+operational safety and owner authorization gates below remain closed.
+
 **Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
 merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
 quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)

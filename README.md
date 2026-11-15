@@ -1,5 +1,12 @@
 # CommerceKit CCv2 Build Cleanup
 
+> **Consistent summary formatting is a source candidate.** This branch consumes
+> the new shared summary renderer from unpublished notification-contract 0.0.6.
+> Normal dependencies, lockfile and committed bundle stay on published 0.0.5;
+> registry-backed rebuild readiness is blocked until separate publication and
+> exact repinning. Existing cleanup notifications and all deletion safeguards
+> remain unchanged. See [candidate evidence](docs/consistent-reporting.md).
+
 > **Notification-contract 0.0.5 is published.** Its authorized package-only
 > publication enables cleanup success/warning/failure detail and redacted input
 > context. Cleanup's exact registry install, lockfile, bundle and local validation

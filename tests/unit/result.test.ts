@@ -259,7 +259,7 @@ describe("sanitized reports", () => {
     expect(md).toContain("Decision table truncated");
     expect(md).not.toContain("<script>");
     expect(md).not.toContain("javascript:");
-    expect(md).toContain("&#60;script&#62;");
+    expect(md).toMatch(/&(?:#60|lt);script&(?:#62|gt);/);
     expect(
       summary(
         { ...value, dryRun: false },

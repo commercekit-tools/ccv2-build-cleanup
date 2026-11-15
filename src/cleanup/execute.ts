@@ -1,7 +1,8 @@
 import { Ccv2TransportError } from "@commercekit-tools/ccv2-client";
 import { CleanupError, type CleanupApi, type Discovery } from "../api/index.js";
 import { evaluateRetention } from "../retention/index.js";
-import type { Inputs } from "../inputs.js";
+import { InputValidationError, type Inputs } from "../inputs.js";
+import { cleanupInputNames } from "../reporting/input-context.js";
 import type { RetentionPlan, ReasonCode } from "../model.js";
 export type Disposition =
   | "protected"
@@ -23,9 +24,19 @@ export interface Execution {
   plan: RetentionPlan;
   discovery: Discovery;
   decisions: ExecutionDecision[];
-  error?: { code: string; status?: number };
+  error?: { code: string; status?: number; input?: string };
 }
-export function safeError(error: unknown): { code: string; status?: number } {
+export function safeError(error: unknown): {
+  code: string;
+  status?: number;
+  input?: string;
+} {
+  if (error instanceof InputValidationError) {
+    const known = [...cleanupInputNames, "identifier"].some(
+      (name) => name === error.input,
+    );
+    return { code: "invalid-input", ...(known ? { input: error.input } : {}) };
+  }
   if (error instanceof CleanupError || error instanceof Ccv2TransportError)
     return {
       code: error.code,

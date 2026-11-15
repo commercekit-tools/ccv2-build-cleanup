@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: commercekit-tools/ccv2-build-cleanup@d7363059d4ef523a40e8df912c03ee1215200224
+      - uses: commercekit-tools/ccv2-build-cleanup@ac5cbcc2fdf1054a891a7a00e1527299b4627130
         id: cleanup
         with:
           token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}
@@ -23,7 +23,7 @@ jobs:
           resource: ${{ secrets.CCV2_RESOURCE }}
           subscription-code: ${{ vars.CCV2_SUBSCRIPTION_CODE }}
           dry-run: "true"
-      - uses: commercekit-tools/notify@832f6bd04b1889d0d3b4d47a1b2dc0e110985c73
+      - uses: commercekit-tools/notify@6331ff4a60956a3a2b546e84d737c9338ca46bda
         if: ${{ always() && steps.cleanup.outputs.notification-event != '' }}
         with:
           provider: slack # or teams-workflow

@@ -3,7 +3,11 @@ import {
   extractSafeGitHubContext,
   sanitizeBoundedText,
   validateNotificationEvent,
+  type BuildCleanupInputSnapshot,
+  redactJwtLikeTokens,
 } from "@commercekit-tools/notification-contract";
+import { describeCleanupOutcome } from "./cleanup-issues.js";
+import { snapshotInputContext } from "./input-context.js";
 
 /** Producer projection only. Validation and the event schema belong to action-kit. */
 export interface CleanupNotificationInput {
@@ -11,6 +15,15 @@ export interface CleanupNotificationInput {
   durationMs: number;
   status: string;
   dryRun: boolean;
+  inputs?: BuildCleanupInputSnapshot;
+  inputsValidated?: boolean;
+  inputsTruncated?: boolean;
+  completeness?: {
+    inventory: boolean;
+    protection: boolean;
+    eligibility: boolean;
+  };
+  decisions?: readonly { disposition: string; reasons: readonly string[] }[];
   scope: { subscriptionCode: string; applicationCode?: string };
   policy: { retentionDays: number; keepLatest: number };
   counts: {
@@ -22,8 +35,9 @@ export interface CleanupNotificationInput {
     failed: number;
     unknown: number;
     deferred: number;
+    protected?: number;
   };
-  error?: { code: string };
+  error?: { code: string; status?: number; input?: string };
 }
 
 /** The pinned published contract owns cleanup creation and validation. */
@@ -33,10 +47,14 @@ export function createCleanupNotification(
   secrets: readonly string[] = [],
 ): string {
   const safe = (value: string) => sanitizeBoundedText(value, 128, secrets);
+  const explanation = describeCleanupOutcome(result);
+  const context = result.inputs
+    ? snapshotInputContext(result.inputs, undefined, (text, max) =>
+        sanitizeBoundedText(redactJwtLikeTokens(text), max, secrets),
+      )
+    : undefined;
   const event: unknown = createBuildCleanupEvent({
-    status: ["dry-run", "no-op", "success"].includes(result.status)
-      ? "success"
-      : "failure",
+    status: explanation.status,
     occurredAt: result.runStartedAt,
     context: Object.fromEntries(
       Object.entries(extractSafeGitHubContext(env)).map(([key, value]) => [
@@ -65,12 +83,37 @@ export function createCleanupNotification(
       unknownCount: result.counts.unknown,
       deferredCount: result.counts.deferred,
       durationMs: result.durationMs,
-      ...(result.error
+      protectedCount: result.counts.protected ?? 0,
+      blockedCount:
+        result.decisions?.filter(
+          (decision) => decision.disposition === "blocked",
+        ).length ?? 0,
+      ...(context
+        ? {
+            inputs: context.inputs,
+            inputsValidated: result.inputsValidated ?? false,
+            inputsTruncated: Boolean(
+              result.inputsTruncated || context?.inputsTruncated,
+            ),
+          }
+        : {}),
+      ...(explanation.issues.length
+        ? {
+            issues: explanation.issues.map((issue) => ({
+              code: sanitizeBoundedText(issue.code, 100, secrets),
+              message: sanitizeBoundedText(issue.message, 1000, secrets),
+            })),
+          }
+        : {}),
+      ...(explanation.error
         ? {
             error: {
-              code: sanitizeBoundedText(result.error.code, 100, secrets),
-              message:
-                "Cleanup did not complete successfully. Review the sanitized report.",
+              code: sanitizeBoundedText(explanation.error.code, 100, secrets),
+              message: sanitizeBoundedText(
+                explanation.error.message,
+                1000,
+                secrets,
+              ),
             },
           }
         : {}),

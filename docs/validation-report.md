@@ -1,5 +1,68 @@
 # Validation report
 
+**Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
+merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
+quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)
+passed 107 tests in 12 files, 19 schema fixtures and six standalone provider
+cases. [CodeQL run 43668192753](https://github.com/commercekit-tools/notify/actions/runs/43668192753)
+and the processed PR security check passed. Both providers show the complete
+redacted input context, counts, failure explanations and warning issues.
+
+## Notification-context 0.0.5 registry transition
+
+**PASS — package publication:** owner-authorized
+[run 43667757934](https://github.com/commercekit-tools/action-kit/actions/runs/43667757934)
+published notification-contract **0.0.5** from action-kit main
+`7cc2e8e6af46e7438064cc6205b22f4f7154eb94`. Registry integrity is
+`sha512-SMcyyWaeHdtlztt99xtWlJycSAspSTGvCaWJH7M2+u+on77JHwo8boTBOc9UUC0BQHDPo/VHmOj4gpt/XIbqmw==`,
+identical to the tested source-packed candidate. ccv2-client remains **0.0.3**.
+
+**PASS — cleanup local registry-backed validation:** normal manifest/lockfile
+use exact 0.0.5; `pnpm install --frozen-lockfile`, `pnpm bundle`, `pnpm lint`,
+`pnpm typecheck`, `CLEANUP_SANDBOX_PATH=<pinned local checkout> pnpm test:coverage`,
+`pnpm bundle:check`, `pnpm metadata:check`, `pnpm scan:public`, `pnpm audit`, local
+actionlint and `git diff --check` passed. Coverage includes the actual bundled
+action against the local Sandbox: **372 tests in 16 files, zero skipped; 99.81%
+statements, 99.62% branches, 100% functions and lines**, with all 98% thresholds
+unchanged. Public scanning checked 70 files; the audit found no known
+vulnerabilities. Normal bundle SHA256 is
+`6b11122ba8223b8d26525a443336bfec352952c43d949b4f7ad347cf857fb8ee`, identical
+to the previously tested candidate bundle. Publication logs also confirm the
+action-kit validation passed all **312 tests**.
+
+**PASS — hosted implementation checks:** exact cleanup implementation
+`ac5cbcc2fdf1054a891a7a00e1527299b4627130` passed [validate run 43668394766](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43668394766)
+and [CodeQL run 43668394744](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43668394744),
+including the processed PR `CodeQL` check. Hosted logs confirm 372 tests/16 files,
+zero skips, local Sandbox execution, bundle consistency and no known audit
+vulnerabilities. `pnpm format:check` also passed locally. All three consumer
+examples now pin this validated immutable cleanup implementation; the notification
+example pins compatible merged Notify `6331ff4a60956a3a2b546e84d737c9338ca46bda`.
+This follow-up changes documentation/example pins only; the final PR head must
+also pass the same required checks before merge, without bypassing protection.
+
+**PASS — Notify post-merge checks:** main commit
+`6331ff4a60956a3a2b546e84d737c9338ca46bda` passed
+[CI run 43668309374](https://github.com/commercekit-tools/notify/actions/runs/43668309374)
+and [CodeQL run 43668309332](https://github.com/commercekit-tools/notify/actions/runs/43668309332).
+Processed main analysis `2169549990` records that exact commit with empty error
+and warning fields; no open main CodeQL alerts were returned. The older candidate
+results in [notification-context.md](notification-context.md) are historical
+provenance and are not used in the normal dependency or test path.
+
+The notification enhancement preserves all cleanup inputs and deletion gates.
+All notifications carry bounded sanitized input context; success counts accepted
+deletion requests, warning describes safety-blocked dry-run issues, and failure
+explains actual errors/blocked apply. SAP eligibility remains unverified and real
+apply is blocked. No release tag, deployment, production enablement or real SAP
+operation is part of this transition. The contract package publication was
+explicitly authorized; Action releases and real deletion remain blocked.
+
+## Historical 0.0.4 main-branch validation evidence
+
+The following sections retain the earlier 0.0.4 post-merge results and release
+blockers. They do not assert that the new 0.0.5 consumer checks have passed.
+
 ## Post-merge verification after PR #5 — 2026-11-14
 
 **PASS:** [PR #5](https://github.com/commercekit-tools/ccv2-build-cleanup/pull/5)

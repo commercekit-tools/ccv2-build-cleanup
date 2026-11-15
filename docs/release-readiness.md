@@ -24,10 +24,11 @@ Existing cleanup input names/defaults/validation and deletion protections remain
 normal lockfile/bundle, lint, strict types, 372 tests including actual bundled local
 Sandbox, bundle consistency, metadata/actionlint, public scan and audit passed.
 Coverage is 99.81% statements, 99.62% branches and 100% functions/lines; unchanged
-98% thresholds apply. Final repository formatting and required cleanup hosted PR checks remain
-pending. The notification example pins the compatible merged Notify above;
-older Notify versions may reject cleanup warning events. The
-owner authorized publication and consumer merges conditional on green checks,
+98% thresholds apply. Formatting and required hosted validation/CodeQL passed
+on implementation `ac5cbcc2fdf1054a891a7a00e1527299b4627130`, now pinned by all
+consumer examples. Notify's merged compatible commit is pinned in the notification
+example. Final documentation/example follow-up commits must pass the same checks
+before merge; see [validation-report.md](validation-report.md). The owner authorized publication and consumer merges conditional on green checks,
 not bypassing branch protection or treating candidate tests as registry proof.
 
 [Earlier candidate validation](notification-context.md) records the source tarball

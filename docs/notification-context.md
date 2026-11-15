@@ -82,15 +82,16 @@ Executed registry transition evidence:
 | Cleanup coverage and actual bundled local Sandbox         | PASS: 372 tests/16 files, zero skipped; 99.81% statements, 99.62% branches, 100% functions/lines; thresholds remain 98%                             |
 | Action/workflow lint                                      | PASS: local actionlint                                                                                                                              |
 | Bundle consistency, metadata, public scan and audit       | PASS: `pnpm bundle:check`, `pnpm metadata:check`, `pnpm scan:public` (70 files), `pnpm audit` (no known vulnerabilities), `git diff --check`        |
-| Final repository formatting and required hosted PR checks | NOT RUN: pending final consumer head                                                                                                                |
-| Notify full registry-backed quality/required PR checks    | NOT RUN: in progress                                                                                                                                |
+| Final repository formatting and required hosted PR checks | PASS: format; validate 43668394766 and CodeQL 43668394744 on the immutable implementation pinned by examples                                        |
+| Notify full registry-backed quality/required PR checks    | PASS: 107 tests, 19 fixtures, six standalone provider/status cases; quality/CodeQL green; #18 merged                                                |
 | Real SAP, hosted Sandbox dispatch, live Slack/Teams sends | NOT RUN in this task                                                                                                                                |
 
-Final repository formatting, hosted required checks and compatible Notify results must be
-recorded after those commands complete. Neither publication nor
-the matching bundle hash substitutes for these checks. Compatible Notify must
-consume 0.0.5 and include the cleanup context/warning renderer; older versions may
-reject cleanup warning events.
+Normal registry-backed checks passed on cleanup implementation
+`ac5cbcc2fdf1054a891a7a00e1527299b4627130`. All consumer examples now pin that
+validated immutable implementation and the notification example pins the merged
+0.0.5-compatible Notify above. [Validation evidence](validation-report.md) links
+the exact runs. Documentation/example follow-ups must pass the same required
+checks before merge. Older Notify versions may reject cleanup warning events.
 
 ## Historical source-packed validation
 
@@ -132,8 +133,9 @@ candidate package preparation is needed.
 ## Remaining gates
 
 The owner authorized the package publication and consumer merges only when all
-required checks are green. Final repository formatting/hosted checks and compatible
-immutable consumer pins are pending. Publication does not create an Action
-release or authorize tags, deployment or real deletion. Inputs, default dry-run,
-the unverified SAP four-hour eligibility gate and all operational protection
-checks remain unchanged. No real SAP or live provider operation was performed.
+required checks are green. Registry compatibility and implementation checks passed;
+final PR heads must independently satisfy branch protection. Publication does not
+create an Action release or authorize Git tags, deployment or real deletion.
+Inputs, default dry-run, the unverified SAP four-hour eligibility gate and all
+operational protection checks remain unchanged. No real SAP or live provider
+operation was performed.

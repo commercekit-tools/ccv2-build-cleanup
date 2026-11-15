@@ -22,7 +22,8 @@ The cleanup consumer upgrade targets exact published 0.0.5 with ccv2-client
 lint, strict types, coverage with actual bundled local Sandbox, bundle consistency,
 metadata/actionlint, public scan and audit passed. The 372 tests in 16 files had
 zero skips and 99.81% statement, 99.62% branch, 100% function/line coverage.
-Required cleanup hosted checks on the final consumer head remain pending. The shared cleanup factory,
+Required hosted validation and CodeQL passed on cleanup implementation
+`ac5cbcc2fdf1054a891a7a00e1527299b4627130`, now pinned by all examples. The shared cleanup factory,
 schema/types and validation now support cleanup-only warning, all 14 sanitized
 input settings, safe error/issues and protected/blocked counts. OAuth/transport,
 shared sanitization/context/link APIs and Notify delivery remain reused.
@@ -31,7 +32,7 @@ The candidate preparation procedure is archived at immutable cleanup commit
 [`fb566f6d2268f663a0ea8e0f43890ea5eb818e33`](https://github.com/commercekit-tools/ccv2-build-cleanup/tree/fb566f6d2268f663a0ea8e0f43890ea5eb818e33).
 It is historical evidence, not a normal dependency or validation prerequisite.
 See [notification-context.md](notification-context.md) for provenance and current
-pending consumer gates. Real SAP eligibility and operational safety gates remain.
+remaining release gates. Real SAP eligibility and operational safety gates remain.
 
 ## Historical published-contract 0.0.4 adoption
 

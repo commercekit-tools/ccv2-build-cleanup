@@ -96,8 +96,8 @@ production guarantees nor permission to release or perform real deletion.
 
 The table retains completed baseline scenario evidence. The normal
 registry-backed 0.0.5 bundle rerun also passed the local matrix, including full
-input contexts, warning issues and zero target mutations; required hosted checks
-remain pending. Earlier source-packed evidence is recorded separately.
+input contexts, warning issues and zero target mutations. Hosted validation and
+CodeQL also passed on the implementation pinned by the examples. Earlier source-packed evidence is recorded separately.
 
 | Scenario                                                                                                                 | Status             | Evidence / limitation                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------ |

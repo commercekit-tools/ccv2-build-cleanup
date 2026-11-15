@@ -30,19 +30,33 @@ vulnerabilities. Normal bundle SHA256 is
 to the previously tested candidate bundle. Publication logs also confirm the
 action-kit validation passed all **312 tests**.
 
-**NOT RUN — final coordinated consumer checks:** final repository formatting,
-required cleanup hosted PR checks on the final head
-remain pending. Historical candidate results in
-[notification-context.md](notification-context.md) do not substitute for normal
-registry validation or required checks. No consumer merge is claimed here.
+**PASS — hosted implementation checks:** exact cleanup implementation
+`ac5cbcc2fdf1054a891a7a00e1527299b4627130` passed [validate run 43668394766](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43668394766)
+and [CodeQL run 43668394744](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43668394744),
+including the processed PR `CodeQL` check. Hosted logs confirm 372 tests/16 files,
+zero skips, local Sandbox execution, bundle consistency and no known audit
+vulnerabilities. `pnpm format:check` also passed locally. All three consumer
+examples now pin this validated immutable cleanup implementation; the notification
+example pins compatible merged Notify `6331ff4a60956a3a2b546e84d737c9338ca46bda`.
+This follow-up changes documentation/example pins only; the final PR head must
+also pass the same required checks before merge, without bypassing protection.
+
+**PASS — Notify post-merge checks:** main commit
+`6331ff4a60956a3a2b546e84d737c9338ca46bda` passed
+[CI run 43668309374](https://github.com/commercekit-tools/notify/actions/runs/43668309374)
+and [CodeQL run 43668309332](https://github.com/commercekit-tools/notify/actions/runs/43668309332).
+Processed main analysis `2169549990` records that exact commit with empty error
+and warning fields; no open main CodeQL alerts were returned. The older candidate
+results in [notification-context.md](notification-context.md) are historical
+provenance and are not used in the normal dependency or test path.
 
 The notification enhancement preserves all cleanup inputs and deletion gates.
 All notifications carry bounded sanitized input context; success counts accepted
 deletion requests, warning describes safety-blocked dry-run issues, and failure
 explains actual errors/blocked apply. SAP eligibility remains unverified and real
 apply is blocked. No release tag, deployment, production enablement or real SAP
-operation is part of this transition. Only the explicitly authorized contract
-package publication has occurred.
+operation is part of this transition. The contract package publication was
+explicitly authorized; Action releases and real deletion remain blocked.
 
 ## Historical 0.0.4 main-branch validation evidence
 

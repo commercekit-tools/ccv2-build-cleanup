@@ -14,7 +14,8 @@ from action-kit main `7cc2e8e6af46e7438064cc6205b22f4f7154eb94`.
 Its registry integrity matches the previously tested source artifact:
 `sha512-SMcyyWaeHdtlztt99xtWlJycSAspSTGvCaWJH7M2+u+on77JHwo8boTBOc9UUC0BQHDPo/VHmOj4gpt/XIbqmw==`.
 Cleanup's exact registry repinning, normal lockfile/bundle and local validation
-passed, including 372 tests and actual bundled local Sandbox. Required cleanup hosted checks remain pending; see
+passed, including 372 tests and actual bundled local Sandbox. Required hosted validation and CodeQL also passed on the immutable
+cleanup implementation pinned by the examples; see
 [notification-context.md](../docs/notification-context.md).
 
 The 0.0.5 source-packed preparation script and then-current instructions are

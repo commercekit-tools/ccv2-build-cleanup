@@ -3,7 +3,8 @@
 > **Notification-contract 0.0.5 is published.** Its authorized package-only
 > publication enables cleanup success/warning/failure detail and redacted input
 > context. Cleanup's exact registry install, lockfile, bundle and local validation
-> passed. Compatible Notify #18 is merged; cleanup hosted checks remain pending.
+> passed, including required hosted validation and CodeQL. Compatible Notify #18
+> is merged and pinned in the notification example.
 > See [notification validation](docs/notification-context.md). Cleanup
 > inputs, retention rules, default dry-run and real-SAP eligibility protections
 > are unchanged.
@@ -176,7 +177,7 @@ events. No Action release or version tag is implied by these commits.
 
 Normal validation must use the registry-installed package and the actual bundled
 action against the existing local sandbox; the local 0.0.5 rerun passed. Hosted
-checks on the final consumer head remain pending.
+validation and CodeQL passed on the implementation commit pinned by the examples.
 [Historical integration artifacts](integration/README.md)
 retain the pre-publication patches and candidate evidence; candidate source
 preparation, dependency aliases and packed-source test bundles are no longer

@@ -22,9 +22,27 @@ files, zero skips; 99.81% statements, 99.62% branches, 100% functions/lines**.
 All 98% thresholds remain unchanged. Bundle consistency passed for normal SHA256
 `ab30073d8bb01ee4e120ba58f57737af2a9fd99b94bffb7cc52b83a80d004f9f`.
 The actual bundled Sandbox matrix preserved zero target mutations and verified
-input/notification/summary parity. Required hosted validation and CodeQL on the
-normal final head are pending and will gate merge; their links are recorded in
-the PR handoff after completion.
+input/notification/summary parity. Normal implementation commit
+`82ef04cc9392cf08188873b43d1ceedcd8ed6d4c` passed
+[validate 43678428597](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43678428597),
+[CodeQL 43678428636](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43678428636)
+and the app-bound processed PR CodeQL check. Consumer examples pin that reviewed
+immutable implementation. This follow-up changes documentation/example pins only;
+its own required checks must also pass before merge.
+
+Compatible Notify [PR #19](https://github.com/commercekit-tools/notify/pull/19)
+merged as `abc752ead104a6e5153c5f166d04ee5e595e0ca6` after
+[quality 43678652611](https://github.com/commercekit-tools/notify/actions/runs/43678652611)
+and [CodeQL 43678652600](https://github.com/commercekit-tools/notify/actions/runs/43678652600)
+passed on the normal registry build: 188 tests, 58 standalone process cases,
+20 schema fixtures and 40 provider snapshots. The notification example pins the
+merged Notify implementation; no Action version tag is implied.
+
+The all-five normal registry integration passed 24 records in 56,513 ms using
+clean reviewed branch heads and official registry lock/package-byte proofs.
+Four local runs were removed and verified absent; cleanup made zero target
+mutations and all provider calls were mocked. The integration PR records final
+merged references and sanitized evidence after its own green validation.
 
 The publication main also passed [CI 43677942127](https://github.com/commercekit-tools/action-kit/actions/runs/43677942127)
 and [CodeQL 43677942074](https://github.com/commercekit-tools/action-kit/actions/runs/43677942074).

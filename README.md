@@ -168,7 +168,7 @@ Notification severity does not change the Action's failure behavior.
 The example passes `notification-event` to Notify's `event-json`, uses `always()`
 with a nonempty-event guard and keeps webhook secrets only on Notify. It pins
 compatible unreleased Notify commit
-[`6331ff4a60956a3a2b546e84d737c9338ca46bda`](https://github.com/commercekit-tools/notify/commit/6331ff4a60956a3a2b546e84d737c9338ca46bda).
+[`abc752ead104a6e5153c5f166d04ee5e595e0ca6`](https://github.com/commercekit-tools/notify/commit/abc752ead104a6e5153c5f166d04ee5e595e0ca6).
 Notify owns Slack and Teams Workflows rendering/delivery. Notification failure
 does not hide cleanup failure. Older Notify versions can reject cleanup warning
 events. No Action release or version tag is implied by these commits.

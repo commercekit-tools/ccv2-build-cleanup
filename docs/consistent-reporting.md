@@ -62,3 +62,14 @@ historical evidence. It is not the current dependency/build path.
 No live SAP or notification-provider validation is implied by package publication
 or local Sandbox success. Action releases, Git tags, deployment and real deletion
 remain prohibited in this task; remaining production gates are unchanged.
+
+## Hosted implementation verification
+
+Cleanup implementation `82ef04cc9392cf08188873b43d1ceedcd8ed6d4c` passed
+[validate 43678428597](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43678428597)
+and [CodeQL 43678428636](https://github.com/commercekit-tools/ccv2-build-cleanup/actions/runs/43678428636),
+including the processed required security check. All consumer examples pin this
+validated normal implementation and the notification example pins compatible
+merged Notify `abc752ead104a6e5153c5f166d04ee5e595e0ca6`. Documentation/example
+follow-ups must pass the same protected checks before merge. No tag or Action
+release exists. Final post-merge evidence is linked in the PR handoff.

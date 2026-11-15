@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: commercekit-tools/ccv2-build-cleanup@ac5cbcc2fdf1054a891a7a00e1527299b4627130
+      - uses: commercekit-tools/ccv2-build-cleanup@82ef04cc9392cf08188873b43d1ceedcd8ed6d4c
         with:
           token-endpoint: ${{ secrets.CCV2_TOKEN_ENDPOINT }}
           client-id: ${{ secrets.CCV2_CLIENT_ID }}

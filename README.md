@@ -1,5 +1,13 @@
 # CommerceKit CCv2 Build Cleanup
 
+> **Notification-context changes are an unpublished candidate.** This feature
+> branch adds cleanup success/warning/failure detail and redacted input context.
+> It requires notification-contract 0.0.5, which is not published. Normal committed
+> dependencies and bundle remain on 0.0.4; registry validation/merge readiness is
+> BLOCKED until separately authorized publication and exact consumer repinning.
+> See [candidate validation](docs/notification-context.md). Cleanup inputs,
+> retention rules, default dry-run and real-SAP eligibility protections are unchanged.
+
 Unreleased TypeScript GitHub Action for planning safe SAP Commerce Cloud build
 retention. It runs once; GitHub Actions owns the schedule. Node 24 and all runtime
 dependencies are bundled in `dist/index.js`.

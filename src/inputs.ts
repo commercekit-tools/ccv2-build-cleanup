@@ -20,9 +20,15 @@ export const bounds = Object.freeze({
   timeoutMinutes: 60,
   exclusions: 10000,
 });
+/** Input names only; values must never become diagnostic text. */
+export class InputValidationError extends Error {
+  constructor(readonly input: string) {
+    super(`Invalid ${input} input.`);
+  }
+}
 const controls = /[\u0000-\u001f\u007f-\u009f]/;
 function invalid(name: string): never {
-  throw new Error(`Invalid ${name} input.`);
+  throw new InputValidationError(name);
 }
 export function identifier(value: string): string {
   try {
@@ -50,12 +56,20 @@ export function readInputs(
     if (!value.trim() || controls.test(value) || value.length > 8192)
       invalid(credentialNames[i]!);
   }
-  const tokenEndpoint = validateTechnicalUserTokenEndpoint(
-    credentials[0]!,
-  ).href;
-  const apiBaseUrl = validateManagementApiBaseUrl(
-    get("api-base-url") || "https://portalapi.commerce.ondemand.com",
-  ).href;
+  let tokenEndpoint: string;
+  let apiBaseUrl: string;
+  try {
+    tokenEndpoint = validateTechnicalUserTokenEndpoint(credentials[0]!).href;
+  } catch {
+    invalid("token-endpoint");
+  }
+  try {
+    apiBaseUrl = validateManagementApiBaseUrl(
+      get("api-base-url") || "https://portalapi.commerce.ondemand.com",
+    ).href;
+  } catch {
+    invalid("api-base-url");
+  }
   // A configured /v2 prefix would otherwise create an accidental /v2/v2 path.
   if (new URL(apiBaseUrl).pathname !== "/") invalid("api-base-url");
   function integer(name: string, fallback: string, max: number): number {

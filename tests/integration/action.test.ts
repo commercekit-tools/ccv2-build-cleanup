@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run, type ActionCore } from "../../src/action.js";
 import { createCleanupNotification } from "../../src/reporting/notification.js";
-import { writeReport } from "../../src/reporting/result.js";
+import { Sanitizer, writeReport } from "../../src/reporting/result.js";
+import { cleanupInputNames } from "../../src/reporting/input-context.js";
 import { build, rawInputs, start } from "../fixtures/builds.js";
 vi.mock("../../src/reporting/notification.js", async (original) => {
   const actual =
@@ -94,6 +95,14 @@ function setup(
   };
   return { core, output, summaries, runtime, calls };
 }
+function cleanupEvent(output: Record<string, unknown>) {
+  const event = parseNotificationEventJson(
+    String(output["notification-event"]),
+  );
+  if (event.eventType !== "ccv2.build-cleanup.completed")
+    throw new Error("Expected cleanup event.");
+  return event;
+}
 beforeEach(async () => {
   const actual = await vi.importActual<
     typeof import("../../src/reporting/notification.js")
@@ -143,6 +152,36 @@ describe("real shared authentication and action reporting", () => {
         "notification-event": expect.any(String),
       });
       expect(x.core.setFailed).not.toHaveBeenCalled();
+      expect(
+        vi.mocked(x.core.getInput).mock.calls.map(([name]) => name),
+      ).toEqual(cleanupInputNames);
+      const event = cleanupEvent(x.output);
+      expect(event.status).toBe("warning");
+      expect(event.data.inputsValidated).toBe(true);
+      expect(event.data.inputsTruncated).toBe(false);
+      expect(Object.keys(event.data.inputs!)).toEqual(cleanupInputNames);
+      expect(event.data.inputs).toMatchObject({
+        "token-endpoint": "[REDACTED]",
+        "client-id": "[REDACTED]",
+        "client-secret": "[REDACTED]",
+        resource: "[REDACTED]",
+        "subscription-code": "sub",
+        "api-base-url": "https://portalapi.commerce.ondemand.com/",
+        "retention-days": "30",
+        "keep-latest": "10",
+        "max-deletions": "20",
+        "timeout-minutes": "15",
+        "continue-on-delete-error": "false",
+      });
+      expect(event.data.issues?.[0]).toMatchObject({
+        code: "eligibility-unverified",
+        message: expect.stringContaining("four-hour"),
+      });
+      for (const secret of [
+        ...Object.values(rawInputs).slice(0, 4),
+        "runtime-token",
+      ])
+        expect(JSON.stringify(x.output)).not.toContain(secret);
       expect(x.summaries.join("")).toContain("DRY RUN");
       const report = await readFile(String(x.output["report-path"]), "utf8");
       expect(report).not.toContain("secret-fixture");
@@ -190,6 +229,17 @@ describe("real shared authentication and action reporting", () => {
       "result-json",
       expect.any(String),
     );
+    const event = cleanupEvent(x.output);
+    expect(event.status).toBe("failure");
+    expect(event.data.mode).toBe("apply");
+    expect(event.data.inputs?.["dry-run"]).toBe("false");
+    expect(event.data.error).toMatchObject({
+      code: "cleanup-blocked",
+      message: expect.stringContaining("four-hour"),
+    });
+    expect(
+      Math.max(...vi.mocked(x.core.setOutput).mock.invocationCallOrder),
+    ).toBeLessThan(vi.mocked(x.core.setFailed).mock.invocationCallOrder[0]!);
   });
   it.each([{ failure: 403 }, { tokenFailure: 401 }])(
     "preserves handled authentication/read failures %j",
@@ -200,6 +250,13 @@ describe("real shared authentication and action reporting", () => {
       expect(x.output["scanned-count"]).toBe(0);
       expect(x.core.setFailed).toHaveBeenCalled();
       expect(JSON.stringify(x.output)).not.toContain("secret-fixture");
+      const event = cleanupEvent(x.output);
+      expect(event.status).toBe("failure");
+      expect(event.data.inputsValidated).toBe(true);
+      expect(Object.keys(event.data.inputs!)).toEqual(cleanupInputNames);
+      expect(event.data.error?.message).toContain(
+        `HTTP ${options.failure ?? options.tokenFailure}`,
+      );
     },
   );
   it("preserves invalid input outputs before failing", async () => {
@@ -208,6 +265,21 @@ describe("real shared authentication and action reporting", () => {
     expect(x.calls).toHaveLength(0);
     expect(x.output["dry-run"]).toBe("true");
     expect(x.output["cleanup-status"]).toBe("failed");
+    const event = cleanupEvent(x.output);
+    expect(event.status).toBe("failure");
+    expect(event.data.inputsValidated).toBe(false);
+    expect(Object.keys(event.data.inputs!)).toEqual(cleanupInputNames);
+    expect(event.data.inputs?.["retention-days"]).toBe("bad");
+    expect(event.data.inputs?.["subscription-code"]).toBe("sub");
+    expect(event.data.error).toMatchObject({
+      code: "invalid-input",
+      message: expect.stringContaining("Invalid retention-days input."),
+    });
+    expect(event.data.error?.message).toContain("integer from 1 to 36500");
+    expect(JSON.parse(String(x.output["result-json"])).error).toEqual({
+      code: "invalid-input",
+      input: "retention-days",
+    });
   });
   it("keeps cleanup outcome when notification, report or summary fails", async () => {
     const x = setup();
@@ -228,14 +300,14 @@ describe("real shared authentication and action reporting", () => {
       "Job summary could not be written; cleanup outputs are preserved.",
     );
   });
-  it("emits a valid published-contract event matching the cleanup result", async () => {
+  it("emits a validated candidate warning matching the cleanup result", async () => {
     const x = setup({ "application-code": "app" });
     await run(x.core, {}, undefined, x.runtime);
     const event = parseNotificationEventJson(
       String(x.output["notification-event"]),
     );
     expect(event.eventType).toBe("ccv2.build-cleanup.completed");
-    expect(event.status).toBe("failure");
+    expect(event.status).toBe("warning");
     expect(event.data).toMatchObject({
       mode: "dry-run",
       subscriptionCode: "sub",
@@ -249,6 +321,104 @@ describe("real shared authentication and action reporting", () => {
       expect.stringContaining("Notification event generation failed"),
     );
   });
+  it("redacts received tokens and credential values repeated in valid public inputs", async () => {
+    const x = setup({
+      "application-code": "app",
+      "exclude-build-codes": "runtime-token,secret-fixture",
+      "timeout-minutes": "2",
+      "max-deletions": "3",
+    });
+    await run(x.core, {}, undefined, x.runtime);
+    const event = cleanupEvent(x.output);
+    expect(event.status).toBe("warning");
+    expect(event.data.inputs).toMatchObject({
+      "application-code": "app",
+      "exclude-build-codes": "[REDACTED], [REDACTED]",
+      "timeout-minutes": "2",
+      "max-deletions": "3",
+    });
+    expect(JSON.stringify(x.output)).not.toContain("runtime-token");
+    expect(JSON.stringify(x.output)).not.toContain("secret-fixture");
+    expect(x.calls.filter((call) => call.method === "DELETE")).toHaveLength(0);
+  });
+  it("keeps invalid confidential input values out of useful configuration failure diagnostics", async () => {
+    const badSecret = "synthetic-invalid-secret\ncredential";
+    const x = setup({ "client-secret": badSecret });
+    await run(x.core, {}, undefined, x.runtime);
+    const event = cleanupEvent(x.output);
+    expect(x.calls).toHaveLength(0);
+    expect(event.status).toBe("failure");
+    expect(event.data.inputs?.["client-secret"]).toBe("[REDACTED]");
+    expect(event.data.inputsValidated).toBe(false);
+    expect(event.data.error?.message).toContain("Invalid client-secret input.");
+    expect(event.data.error?.message).toContain(
+      "required authentication setting",
+    );
+    expect(JSON.stringify(x.output)).not.toContain(badSecret);
+    expect(x.core.setSecret).toHaveBeenCalledWith(badSecret);
+  });
+  it("reports a bounded long exclusion input without broadening the selected scope", async () => {
+    const codes = Array.from(
+      { length: 1000 },
+      (_, index) => `excluded-${index}`,
+    );
+    const x = setup({
+      "application-code": "app",
+      "exclude-build-codes": codes.join(","),
+    });
+    await run(x.core, {}, undefined, x.runtime);
+    const event = cleanupEvent(x.output);
+    expect(event.data.inputsValidated).toBe(true);
+    expect(event.data.inputsTruncated).toBe(true);
+    expect(event.data.inputs?.["exclude-build-codes"]).toHaveLength(256);
+    expect(event.data.inputs?.["exclude-build-codes"]).toMatch(
+      /… \[truncated\]$/,
+    );
+    expect(event.data.applicationCode).toBe("app");
+    expect(event.data.scannedCount).toBe(1);
+    expect(event.data.deletionRequestedCount).toBe(0);
+  });
+  it.each(["true", "false"])(
+    "preserves cleanup outputs when input-context sanitization fails in dry-run=%s",
+    async (dryRun) => {
+      const temp = await mkdtemp(
+        join(tmpdir(), "cleanup-input-context-failure-"),
+      );
+      const spy = vi
+        .spyOn(Sanitizer.prototype, "input")
+        .mockImplementationOnce(() => {
+          throw new Error("secret-fixture");
+        });
+      try {
+        const x = setup({ "dry-run": dryRun });
+        await run(x.core, { RUNNER_TEMP: temp }, undefined, x.runtime);
+        expect(x.output).toMatchObject({
+          "cleanup-status": "blocked",
+          "dry-run": dryRun,
+          "scanned-count": 1,
+          "deletion-requested-count": 0,
+        });
+        expect(x.core.warning).toHaveBeenCalledWith(
+          "Input settings could not be sanitized; cleanup outcome is preserved.",
+        );
+        expect(x.calls.every((call) => call.method !== "DELETE")).toBe(true);
+        expect(JSON.stringify(x.output)).not.toContain("secret-fixture");
+        const event = cleanupEvent(x.output);
+        expect(event.data.inputs).toBeUndefined();
+        expect(event.status).toBe(dryRun === "true" ? "warning" : "failure");
+        const report = JSON.parse(
+          await readFile(String(x.output["report-path"]), "utf8"),
+        );
+        expect(report.status).toBe("blocked");
+        expect(report.inputs).toBeUndefined();
+        if (dryRun === "true") expect(x.core.setFailed).not.toHaveBeenCalled();
+        else expect(x.core.setFailed).toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+        await rm(temp, { recursive: true, force: true });
+      }
+    },
+  );
   it("supports cancellation before inventory", async () => {
     const x = setup();
     const controller = new AbortController();

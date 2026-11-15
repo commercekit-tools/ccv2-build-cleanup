@@ -1,5 +1,10 @@
 # Validation report
 
+> Current notification-context feature validation is recorded in
+> [notification-context.md](notification-context.md). It uses an unpublished 0.0.5
+> contract candidate; normal registry/bundle readiness is BLOCKED until separately
+> authorized publication. The 0.0.4 evidence below is the earlier published baseline.
+
 ## Post-merge verification after PR #5 — 2026-11-14
 
 **PASS:** [PR #5](https://github.com/commercekit-tools/ccv2-build-cleanup/pull/5)

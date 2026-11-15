@@ -4,9 +4,13 @@ import {
   sanitizeErrorMessage,
   extractSafeGitHubContext,
   validateGitHubRunUrl,
+  redactJwtLikeTokens,
+  type BuildCleanupInputSnapshot,
 } from "@commercekit-tools/notification-contract";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { validateManagementApiBaseUrl } from "@commercekit-tools/ccv2-client";
+import type { snapshotInputContext } from "./input-context.js";
 import type { Inputs } from "../inputs.js";
 import type { Execution, ExecutionDecision } from "../cleanup/execute.js";
 export class Sanitizer {
@@ -25,6 +29,17 @@ export class Sanitizer {
       ]),
       max,
     );
+  }
+  input(value: string, max = 256): string {
+    const text = redactJwtLikeTokens(value);
+    try {
+      const url = validateManagementApiBaseUrl(text);
+      if (url.pathname !== "/") throw new Error("not-origin");
+      return sanitizeBoundedText(text, max, [...this.secrets]);
+    } catch {
+      // Invalid or embedded URLs can contain credentials: use the shared error filter.
+      return this.text(text, max);
+    }
   }
   env(env: NodeJS.ProcessEnv): Record<string, string | undefined> {
     return Object.fromEntries(
@@ -59,6 +74,9 @@ export interface Result {
     | "failed"
     | "outcome-unknown";
   dryRun: boolean;
+  inputs?: BuildCleanupInputSnapshot;
+  inputsValidated?: boolean;
+  inputsTruncated?: boolean;
   scope: { subscriptionCode: string; applicationCode?: string };
   policy: { retentionDays: number; keepLatest: number; maxDeletions: number };
   completeness: {
@@ -78,7 +96,7 @@ export interface Result {
     deferred: number;
   };
   decisions: ExecutionDecision[];
-  error?: { code: string; status?: number };
+  error?: { code: string; status?: number; input?: string };
   truncation: { omittedDecisions: number };
 }
 export function result(
@@ -87,7 +105,8 @@ export function result(
   start: number,
   end: number,
   safe: Sanitizer,
-  error?: { code: string; status?: number },
+  error?: { code: string; status?: number; input?: string },
+  inputContext?: ReturnType<typeof snapshotInputContext>,
 ): Result {
   const decisions = (execution?.decisions ?? []).map((d) => ({
     ...d,
@@ -141,6 +160,7 @@ export function result(
     durationMs: Math.max(0, end - start),
     status,
     dryRun: input?.dryRun ?? true,
+    ...inputContext,
     scope: {
       subscriptionCode: safe.text(input?.subscriptionCode ?? "unavailable"),
       ...(input?.applicationCode
@@ -199,6 +219,13 @@ export function summary(value: Result, workflowUrl?: string): string {
       /* Invalid references are omitted from the summary. */
     }
   }
+  const inputTable = value.inputs
+    ? `\n\n### Cleanup inputs\n\nValidated: ${value.inputsValidated}; truncated: ${value.inputsTruncated}. Authentication values are redacted.\n\n| Input | Value |\n| --- | --- |\n${Object.entries(
+        value.inputs,
+      )
+        .map(([name, setting]) => `| ${escape(name)} | ${escape(setting)} |`)
+        .join("\n")}\n`
+    : "";
   return `## ${value.dryRun ? "DRY RUN" : "APPLY"} — CCv2 build cleanup\n\nStatus: **${escape(value.status)}**\n\nScope: ${escape(value.scope.subscriptionCode)} / ${escape(value.scope.applicationCode ?? "all applications")}\n\nRetention: ${value.policy.retentionDays} days AND outside latest ${value.policy.keepLatest}; cap ${value.policy.maxDeletions}.\n\nInventory / protection / eligibility complete: ${value.completeness.inventory} / ${value.completeness.protection} / ${value.completeness.eligibility}\n\nScanned ${c.scanned}; eligible ${c.eligible}; planned ${c.planned}; deletion requests accepted ${c.deletionRequested}; protected ${c.protected}; deferred ${c.deferred}; failed ${c.failed}; unknown ${c.unknown}.\n\n| Build | Disposition | Reasons |\n| --- | --- | --- |\n${value.decisions
     .slice(0, 50)
     .map(
@@ -207,7 +234,7 @@ export function summary(value: Result, workflowUrl?: string): string {
     )
     .join(
       "\n",
-    )}\n\n${value.decisions.length > 50 ? "Decision table truncated; see report artifact.\n" : ""}Full sanitized detail is at the report-path output; upload it as a workflow artifact for durable access.\n${safeWorkflowUrl ? `\n[Workflow run](${safeWorkflowUrl})\n` : ""}`;
+    )}\n\n${value.decisions.length > 50 ? "Decision table truncated; see report artifact.\n" : ""}${inputTable}Full sanitized detail is at the report-path output; upload it as a workflow artifact for durable access.\n${safeWorkflowUrl ? `\n[Workflow run](${safeWorkflowUrl})\n` : ""}`;
 }
 export async function writeReport(
   value: Result,

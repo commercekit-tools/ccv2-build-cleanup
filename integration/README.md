@@ -1,3 +1,13 @@
+# Notification integration evidence
+
+The current notification-context candidate is documented in
+[notification-context.md](../docs/notification-context.md). Reproduce both isolated
+consumer validations using `validate-notification-candidate.mjs` and the exact
+retained 0.0.5 tarball. No source dependency, local link or candidate bundle is
+installed into normal consumer files. Publication/registry readiness is blocked.
+
+The remaining material is historical evidence for the earlier 0.0.4 adoption.
+
 # Historical pre-publication integration artifacts
 
 Normal cleanup installation and validation now use exact published

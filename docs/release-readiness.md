@@ -1,5 +1,28 @@
 # Release readiness
 
+## Notification-context candidate gate
+
+The notification-context feature requires unpublished contract 0.0.5 from action-kit
+commit `3f9e418556b190bb8d55ac11a22f554e2c51a4a5`. It adds cleanup-only warning,
+all 14input names with four authentication values forced to [REDACTED], safe error/
+issue explanations and complete aggregate counts in Notify's two providers.
+Existing cleanup input names/defaults/validation and deletion protections remain.
+
+**BLOCKED:** normal registry type/schema/bundle consistency cannot pass this new
+source while consumers remain on published 0.0.4. Committed manifests, lockfiles
+and dist have deliberately not been relabeled as0.0.5 or replaced with local links.
+No package publication is authorized here. [Candidate validation](notification-context.md)
+uses the exact tested source tarball in private temporary consumers and records
+its integrity/source SHAs. It is distinct from a reproducible registry build.
+
+After separate publication authorization, verify the new registry artifact,
+repin both consumers exactly, regenerate normal lockfiles/bundles, run all normal
+validation and upgrade integration assertions. Then review/merge the dependent
+changes. The existing production SAP eligibility and owner release gates below
+remain blocked; richer messages do not authorize deletion.
+
+## Previously verified published baseline
+
 **BLOCKED for real SAP apply and an Action release. The action remains unreleased.**
 
 The notification compatibility gate is resolved by consuming exact published

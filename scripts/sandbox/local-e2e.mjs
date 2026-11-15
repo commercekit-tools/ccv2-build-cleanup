@@ -17,7 +17,19 @@ assert(
   "Set CLEANUP_SANDBOX_PATH to the isolated checkout of the pinned sandbox commit.",
 );
 const bundle = join(root, "dist/index.js");
-assert.equal(contractMetadata.version, "0.0.4");
+const candidateVersion = process.env.COMMERCEKIT_CANDIDATE_CONTRACT_VERSION;
+if (candidateVersion !== undefined) {
+  const manifest = JSON.parse(
+    await readFile(join(root, "package.json"), "utf8"),
+  );
+  assert.equal(candidateVersion, "0.0.5");
+  assert.equal(manifest.private, true);
+  assert.match(
+    manifest.dependencies["@commercekit-tools/notification-contract"],
+    /^file:.*\.tgz$/,
+  );
+}
+assert.equal(contractMetadata.version, candidateVersion ?? "0.0.4");
 assert(
   contractSchema.properties.eventType.enum.includes(
     "ccv2.build-cleanup.completed",
@@ -186,7 +198,7 @@ async function action(run, inputs = {}, expectedExit = 0) {
   const notification = outputs["notification-event"];
   assert(
     notification,
-    "The published-contract bundle must emit a notification event.",
+    "The selected contract bundle must emit a notification event.",
   );
   assert(Buffer.byteLength(notification, "utf8") <= 65536);
   for (const secret of [...Object.values(run.credentials), run.controlToken])
@@ -201,9 +213,13 @@ async function action(run, inputs = {}, expectedExit = 0) {
   assert.equal(event.occurredAt, result.runStartedAt);
   assert.equal(
     event.status,
-    ["dry-run", "no-op", "success"].includes(result.status)
-      ? "success"
-      : "failure",
+    result.status === "blocked" &&
+      result.dryRun &&
+      result.completeness.inventory
+      ? "warning"
+      : ["dry-run", "no-op", "success"].includes(result.status)
+        ? "success"
+        : "failure",
   );
   assert.equal(event.data.mode, result.dryRun ? "dry-run" : "apply");
   assert.equal(event.data.cleanupStatus, result.status);
@@ -223,7 +239,32 @@ async function action(run, inputs = {}, expectedExit = 0) {
     deferredCount: "deferred",
   }))
     assert.equal(event.data[eventCount], result.counts[resultCount]);
-  assert.equal(event.data.error?.code, result.error?.code);
+  if (result.error) assert.equal(event.data.error?.code, result.error.code);
+  else if (event.status === "failure") assert(event.data.error?.message);
+  assert.equal(event.data.inputsValidated, true);
+  assert.equal(Object.keys(event.data.inputs).length, 14);
+  assert.deepEqual(event.data.inputs, result.inputs);
+  assert.equal(event.data.protectedCount, result.counts.protected);
+  assert.equal(
+    event.data.blockedCount,
+    result.decisions.filter((decision) => decision.disposition === "blocked")
+      .length,
+  );
+  for (const key of [
+    "token-endpoint",
+    "client-id",
+    "client-secret",
+    "resource",
+  ])
+    assert.equal(event.data.inputs[key], "[REDACTED]");
+  if (event.status === "warning") {
+    assert(
+      event.data.issues.some(
+        (issue) => issue.code === "eligibility-unverified",
+      ),
+    );
+    assert.equal(event.data.error, undefined);
+  }
   assert.equal(
     event.context?.repository,
     "commercekit-tools/ccv2-build-cleanup",
@@ -456,7 +497,7 @@ try {
   ]);
   assert((await action(refresh)).state.faultCounters["issueToken:"] >= 2);
   process.stdout.write(
-    "PASS: bundled action local sandbox; OAuth, refresh, retries, 105-build pagination, protections, repeat run, exact scope, invalid fields, instability, authorization, valid published cleanup notifications, outputs, and zero target mutations.\n",
+    "PASS: bundled action local sandbox; OAuth, refresh, retries, 105-build pagination, protections, repeat run, exact scope, invalid fields, instability, authorization, valid cleanup notification context, outputs, and zero target mutations.\n",
   );
 } finally {
   for (const run of runs) {

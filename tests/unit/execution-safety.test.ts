@@ -6,7 +6,7 @@ import {
   type Discovery,
 } from "../../src/api/index.js";
 import { execute, safeError } from "../../src/cleanup/execute.js";
-import { readInputs } from "../../src/inputs.js";
+import { InputValidationError, readInputs } from "../../src/inputs.js";
 import type { Build } from "../../src/model.js";
 const now = Date.parse("2026-06-01T00:00:00Z");
 const date = (days: number) => new Date(now - days * 86400000).toISOString();
@@ -392,6 +392,21 @@ describe("safe sequential execution", () => {
   });
 });
 describe("safe execution error projection", () => {
+  it("projects recognized input names while dropping arbitrary constructor text", () => {
+    for (const input of ["retention-days", "client-secret", "identifier"])
+      expect(safeError(new InputValidationError(input))).toEqual({
+        code: "invalid-input",
+        input,
+      });
+    for (const input of [
+      "unrecognized-private-value",
+      "__proto__",
+      "constructor",
+    ])
+      expect(safeError(new InputValidationError(input))).toEqual({
+        code: "invalid-input",
+      });
+  });
   it("preserves supported safe codes/status and drops raw unexpected messages", () => {
     expect(safeError(new CleanupError("known"))).toEqual({ code: "known" });
     expect(safeError(new CleanupError("known", 400))).toEqual({

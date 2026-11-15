@@ -1,5 +1,10 @@
 # Integration audit
 
+> Current notification-context feature validation is recorded in
+> [notification-context.md](notification-context.md). It uses an unpublished 0.0.5
+> contract candidate; normal registry/bundle readiness is BLOCKED until separately
+> authorized publication. The 0.0.4 evidence below is the earlier published baseline.
+
 ## Published-contract adoption
 
 The cleanup action now consumes published notification-contract **0.0.4** and

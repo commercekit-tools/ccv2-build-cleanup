@@ -14,6 +14,11 @@ import {
   outputs,
 } from "./reporting/result.js";
 import { createCleanupNotification } from "./reporting/notification.js";
+import {
+  captureInputValues,
+  snapshotInputContext,
+  type CapturedInputValues,
+} from "./reporting/input-context.js";
 export interface ActionCore {
   getInput(name: string): string;
   setSecret(value: string): void;
@@ -32,11 +37,16 @@ export async function run(
   const start = now();
   const safe = new Sanitizer((value) => core.setSecret(value));
   let input: Inputs | undefined;
+  let captured: CapturedInputValues | undefined;
   let execution: Execution | undefined;
-  let error: { code: string; status?: number } | undefined;
+  let error: { code: string; status?: number; input?: string } | undefined;
   try {
-    input = readInputs(
+    captured = captureInputValues(
       (name) => core.getInput(name),
+      (value) => safe.add(value),
+    );
+    input = readInputs(
+      (name) => captured?.[name as keyof CapturedInputValues] ?? "",
       (value) => safe.add(value),
     );
     const runSignal = AbortSignal.any([
@@ -79,7 +89,25 @@ export async function run(
   } catch (cause) {
     error = safeError(cause);
   }
-  const value = result(input, execution, start, now(), safe, error);
+  let inputContext: ReturnType<typeof snapshotInputContext> | undefined;
+  try {
+    inputContext = snapshotInputContext(captured, input, (text, max) =>
+      safe.input(text, max),
+    );
+  } catch {
+    core.warning(
+      "Input settings could not be sanitized; cleanup outcome is preserved.",
+    );
+  }
+  const value = result(
+    input,
+    execution,
+    start,
+    now(),
+    safe,
+    error,
+    inputContext,
+  );
   let event = "";
   let reportPath = "";
   try {

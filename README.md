@@ -1,12 +1,12 @@
 # CommerceKit CCv2 Build Cleanup
 
-> **Notification-context changes are an unpublished candidate.** This feature
-> branch adds cleanup success/warning/failure detail and redacted input context.
-> It requires notification-contract 0.0.5, which is not published. Normal committed
-> dependencies and bundle remain on 0.0.4; registry validation/merge readiness is
-> BLOCKED until separately authorized publication and exact consumer repinning.
-> See [candidate validation](docs/notification-context.md). Cleanup inputs,
-> retention rules, default dry-run and real-SAP eligibility protections are unchanged.
+> **Notification-contract 0.0.5 is published.** Its authorized package-only
+> publication enables cleanup success/warning/failure detail and redacted input
+> context. Cleanup's exact registry install, lockfile, bundle and local validation
+> passed. Compatible Notify #18 is merged; cleanup hosted checks remain pending.
+> See [notification validation](docs/notification-context.md). Cleanup
+> inputs, retention rules, default dry-run and real-SAP eligibility protections
+> are unchanged.
 
 Unreleased TypeScript GitHub Action for planning safe SAP Commerce Cloud build
 retention. It runs once; GitHub Actions owns the schedule. Node 24 and all runtime
@@ -19,7 +19,7 @@ Candidates receive `eligibility-unverified`; no bypass input exists. See
 
 The action consumes the existing `@commercekit-tools/ccv2-client@0.0.3` for OAuth,
 token caching/refresh, endpoint restrictions and safe transport. It consumes
-`@commercekit-tools/notification-contract@0.0.4` for cleanup-event factories,
+`@commercekit-tools/notification-contract@0.0.5` for cleanup-event factories,
 validation, safe context, links and sanitization. OAuth/HTTP infrastructure and
 webhook delivery are not implemented here. [Integration audit](docs/integration-audit.md) records exact
 source SHAs, published-package integrity and historical candidate provenance.
@@ -154,20 +154,30 @@ report/notification errors cannot erase the original outcome.
 
 Use [cleanup-with-notifications.yml](examples/cleanup-with-notifications.yml).
 The action creates and validates `ccv2.build-cleanup.completed` through the exact
-published `notification-contract@0.0.4` package. Dry-run, blocked, successful and
-failed cleanup outcomes include bounded mode, scope, policy, counts and duration;
-accepted requests are never reported as physical deletion.
+published `notification-contract@0.0.5` package. All notifications include the
+14 input names, effective settings when valid, validation/truncation flags,
+scope, policy, counts and duration. Authentication values are always
+`[REDACTED]`; other fields use shared known-secret/JWT sanitization before
+truncation. Accepted deletion requests are never reported as physical deletion.
+
+Success shows accepted request counts. A safety-blocked dry-run with complete
+inventory and no failed, unknown or accepted targets produces a warning with
+safe issue messages. Actual errors, incomplete inventory, partial/unknown
+outcomes and blocked apply produce failure with a safe code and explanation.
+Notification severity does not change the Action's failure behavior.
 
 The example passes `notification-event` to Notify's `event-json`, uses `always()`
 with a nonempty-event guard and keeps webhook secrets only on Notify. It pins
 compatible unreleased Notify commit
-[`832f6bd04b1889d0d3b4d47a1b2dc0e110985c73`](https://github.com/commercekit-tools/notify/commit/832f6bd04b1889d0d3b4d47a1b2dc0e110985c73).
+[`6331ff4a60956a3a2b546e84d737c9338ca46bda`](https://github.com/commercekit-tools/notify/commit/6331ff4a60956a3a2b546e84d737c9338ca46bda).
 Notify owns Slack and Teams Workflows rendering/delivery. Notification failure
-does not hide cleanup failure. Older Notify builds using contract 0.0.3 reject
-the cleanup event. No Action release or version tag is implied by these commits.
+does not hide cleanup failure. Older Notify versions can reject cleanup warning
+events. No Action release or version tag is implied by these commits.
 
-Normal validation uses the registry-installed package and the actual bundled
-action against the existing local sandbox. [Historical integration artifacts](integration/README.md)
+Normal validation must use the registry-installed package and the actual bundled
+action against the existing local sandbox; the local 0.0.5 rerun passed. Hosted
+checks on the final consumer head remain pending.
+[Historical integration artifacts](integration/README.md)
 retain the pre-publication patches and candidate evidence; candidate source
 preparation, dependency aliases and packed-source test bundles are no longer
 required by normal CI or coverage validation.

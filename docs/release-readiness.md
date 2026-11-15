@@ -1,27 +1,42 @@
 # Release readiness
 
-## Notification-context candidate gate
+**Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
+merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
+quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)
+passed 107 tests in 12 files, 19 schema fixtures and six standalone provider
+cases. [CodeQL run 43668192753](https://github.com/commercekit-tools/notify/actions/runs/43668192753)
+and the processed PR security check passed. Both providers show the complete
+redacted input context, counts, failure explanations and warning issues.
 
-The notification-context feature requires unpublished contract 0.0.5 from action-kit
-commit `3f9e418556b190bb8d55ac11a22f554e2c51a4a5`. It adds cleanup-only warning,
-all 14input names with four authentication values forced to [REDACTED], safe error/
+## Notification-context 0.0.5 consumer gate
+
+**PASS — required contract published:** the authorized package-only
+[run 43667757934](https://github.com/commercekit-tools/action-kit/actions/runs/43667757934)
+published notification-contract **0.0.5** from action-kit main commit
+`7cc2e8e6af46e7438064cc6205b22f4f7154eb94`. Its verified registry integrity is
+`sha512-SMcyyWaeHdtlztt99xtWlJycSAspSTGvCaWJH7M2+u+on77JHwo8boTBOc9UUC0BQHDPo/VHmOj4gpt/XIbqmw==`.
+The feature adds cleanup-only warning,
+all 14 input names with four authentication values forced to `[REDACTED]`, safe error/
 issue explanations and complete aggregate counts in Notify's two providers.
 Existing cleanup input names/defaults/validation and deletion protections remain.
 
-**BLOCKED:** normal registry type/schema/bundle consistency cannot pass this new
-source while consumers remain on published 0.0.4. Committed manifests, lockfiles
-and dist have deliberately not been relabeled as0.0.5 or replaced with local links.
-No package publication is authorized here. [Candidate validation](notification-context.md)
-uses the exact tested source tarball in private temporary consumers and records
-its integrity/source SHAs. It is distinct from a reproducible registry build.
+**PASS — cleanup local consumer checks:** exact registry 0.0.5 frozen installation,
+normal lockfile/bundle, lint, strict types, 372 tests including actual bundled local
+Sandbox, bundle consistency, metadata/actionlint, public scan and audit passed.
+Coverage is 99.81% statements, 99.62% branches and 100% functions/lines; unchanged
+98% thresholds apply. Final repository formatting and required cleanup hosted PR checks remain
+pending. The notification example pins the compatible merged Notify above;
+older Notify versions may reject cleanup warning events. The
+owner authorized publication and consumer merges conditional on green checks,
+not bypassing branch protection or treating candidate tests as registry proof.
 
-After separate publication authorization, verify the new registry artifact,
-repin both consumers exactly, regenerate normal lockfiles/bundles, run all normal
-validation and upgrade integration assertions. Then review/merge the dependent
-changes. The existing production SAP eligibility and owner release gates below
-remain blocked; richer messages do not authorize deletion.
+[Earlier candidate validation](notification-context.md) records the source tarball
+integrity and source SHAs. Its reproduction script is archived at immutable
+cleanup commit `fb566f6d2268f663a0ea8e0f43890ea5eb818e33`; normal development
+uses the published dependency. The existing production SAP eligibility and owner
+release gates below remain blocked; richer messages do not authorize deletion.
 
-## Previously verified published baseline
+## Historical verified 0.0.4 baseline
 
 **BLOCKED for real SAP apply and an Action release. The action remains unreleased.**
 

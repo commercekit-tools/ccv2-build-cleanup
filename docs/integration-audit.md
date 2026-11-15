@@ -1,13 +1,41 @@
 # Integration audit
 
-> Current notification-context feature validation is recorded in
-> [notification-context.md](notification-context.md). It uses an unpublished 0.0.5
-> contract candidate; normal registry/bundle readiness is BLOCKED until separately
-> authorized publication. The 0.0.4 evidence below is the earlier published baseline.
+**Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
+merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
+quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)
+passed 107 tests in 12 files, 19 schema fixtures and six standalone provider
+cases. [CodeQL run 43668192753](https://github.com/commercekit-tools/notify/actions/runs/43668192753)
+and the processed PR security check passed. Both providers show the complete
+redacted input context, counts, failure explanations and warning issues.
 
-## Published-contract adoption
+## Published notification context 0.0.5
 
-The cleanup action now consumes published notification-contract **0.0.4** and
+**PASS — publication:** the owner-authorized package-only
+[run 43667757934](https://github.com/commercekit-tools/action-kit/actions/runs/43667757934)
+published notification-contract **0.0.5** from action-kit main
+`7cc2e8e6af46e7438064cc6205b22f4f7154eb94` after PR #12 merged. Its registry
+integrity matches the previously validated source-packed artifact:
+`sha512-SMcyyWaeHdtlztt99xtWlJycSAspSTGvCaWJH7M2+u+on77JHwo8boTBOc9UUC0BQHDPo/VHmOj4gpt/XIbqmw==`.
+
+The cleanup consumer upgrade targets exact published 0.0.5 with ccv2-client
+**0.0.3** unchanged. Registry frozen installation, regenerated lockfile/bundle,
+lint, strict types, coverage with actual bundled local Sandbox, bundle consistency,
+metadata/actionlint, public scan and audit passed. The 372 tests in 16 files had
+zero skips and 99.81% statement, 99.62% branch, 100% function/line coverage.
+Required cleanup hosted checks on the final consumer head remain pending. The shared cleanup factory,
+schema/types and validation now support cleanup-only warning, all 14 sanitized
+input settings, safe error/issues and protected/blocked counts. OAuth/transport,
+shared sanitization/context/link APIs and Notify delivery remain reused.
+
+The candidate preparation procedure is archived at immutable cleanup commit
+[`fb566f6d2268f663a0ea8e0f43890ea5eb818e33`](https://github.com/commercekit-tools/ccv2-build-cleanup/tree/fb566f6d2268f663a0ea8e0f43890ea5eb818e33).
+It is historical evidence, not a normal dependency or validation prerequisite.
+See [notification-context.md](notification-context.md) for provenance and current
+pending consumer gates. Real SAP eligibility and operational safety gates remain.
+
+## Historical published-contract 0.0.4 adoption
+
+The earlier cleanup upgrade consumed published notification-contract **0.0.4** and
 ccv2-client **0.0.3** through their existing public exports. The lockfile and
 standalone bundle are generated from normal registry installation; no candidate
 source alias, developer-local dependency or unpublished version is used.

@@ -17,19 +17,7 @@ assert(
   "Set CLEANUP_SANDBOX_PATH to the isolated checkout of the pinned sandbox commit.",
 );
 const bundle = join(root, "dist/index.js");
-const candidateVersion = process.env.COMMERCEKIT_CANDIDATE_CONTRACT_VERSION;
-if (candidateVersion !== undefined) {
-  const manifest = JSON.parse(
-    await readFile(join(root, "package.json"), "utf8"),
-  );
-  assert.equal(candidateVersion, "0.0.5");
-  assert.equal(manifest.private, true);
-  assert.match(
-    manifest.dependencies["@commercekit-tools/notification-contract"],
-    /^file:.*\.tgz$/,
-  );
-}
-assert.equal(contractMetadata.version, candidateVersion ?? "0.0.4");
+assert.equal(contractMetadata.version, "0.0.5");
 assert(
   contractSchema.properties.eventType.enum.includes(
     "ccv2.build-cleanup.completed",

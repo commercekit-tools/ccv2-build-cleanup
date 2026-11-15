@@ -1,9 +1,14 @@
 # Existing sandbox integration
 
-Normal cleanup validation uses the published
-`@commercekit-tools/notification-contract@0.0.4` dependency and the committed
-`dist/index.js`. There is no candidate package alias, packed-source dependency
-mount, or alternate bundle in this validation path.
+Normal cleanup validation targets the published
+`@commercekit-tools/notification-contract@0.0.5` dependency and the committed
+`dist/index.js`. The registry-backed 0.0.5 local rerun passed with 372 tests in
+16 files, zero skipped, including the actual bundled local Sandbox. Coverage was
+99.81% statements, 99.62% branches and 100% functions/lines. The prior
+source-packed results are recorded separately in
+[notification-context.md](notification-context.md). No candidate package alias,
+packed-source dependency mount or alternate bundle is required for the normal
+validation path.
 
 The existing CommerceKit sandbox includes the merged cleanup fixture/race
 controls. CI pins the merged source commit
@@ -52,10 +57,14 @@ smoke, live provider delivery or SAP validation is automatic.
 ## Notification output and safety evidence
 
 Every action execution must emit a nonempty `notification-event`, bounded to
-64 KiB and parsed by the actual installed 0.0.4 package. The launcher verifies
+64 KiB and parsed by the actual installed 0.0.5 package. The launcher verifies
 the public package metadata/schema and checks the event type, source, run
 instant, shared status mapping, mode, exact scope, policy, every shared aggregate
 count, duration, safe error code and workflow context against the result report.
+The 0.0.5 matrix also verifies all 14 input names, four unconditional authentication
+redaction markers, validation/truncation flags and warning issues. A warning is
+limited to a safety-blocked dry-run with complete inventory and no actual error,
+failed/unknown targets or accepted mutation; blocked apply remains failure.
 It also checks that credential values and sandbox control tokens do not appear
 in the event. This includes handled failures and eligibility-blocked apply;
 a failure output must remain useful and valid before the action exits nonzero.
@@ -84,6 +93,11 @@ missing SAP eligibility evidence. Passing this local matrix proves neither
 production guarantees nor permission to release or perform real deletion.
 
 ## Scenario execution status
+
+The table retains completed baseline scenario evidence. The normal
+registry-backed 0.0.5 bundle rerun also passed the local matrix, including full
+input contexts, warning issues and zero target mutations; required hosted checks
+remain pending. Earlier source-packed evidence is recorded separately.
 
 | Scenario                                                                                                                 | Status             | Evidence / limitation                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------ |

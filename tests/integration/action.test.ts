@@ -300,7 +300,7 @@ describe("real shared authentication and action reporting", () => {
       "Job summary could not be written; cleanup outputs are preserved.",
     );
   });
-  it("emits a validated candidate warning matching the cleanup result", async () => {
+  it("emits a validated shared warning matching the cleanup result", async () => {
     const x = setup({ "application-code": "app" });
     await run(x.core, {}, undefined, x.runtime);
     const event = parseNotificationEventJson(

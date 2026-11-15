@@ -4,7 +4,7 @@ import schema from "@commercekit-tools/notification-contract/schema" with { type
 import { parseNotificationEventJson } from "@commercekit-tools/notification-contract";
 import { createCleanupNotification } from "../../src/reporting/notification.js";
 
-it("emits a validated event using the exact source-packed 0.0.5 candidate, pending publication", () => {
+it("emits a validated event using the exact published 0.0.5 dependency", () => {
   expect(metadata.version).toBe("0.0.5");
   expect(schema.properties.eventType.enum).toContain(
     "ccv2.build-cleanup.completed",

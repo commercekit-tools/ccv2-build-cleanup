@@ -1,16 +1,34 @@
 # Notification integration evidence
 
-The current notification-context candidate is documented in
-[notification-context.md](../docs/notification-context.md). Reproduce both isolated
-consumer validations using `validate-notification-candidate.mjs` and the exact
-retained 0.0.5 tarball. No source dependency, local link or candidate bundle is
-installed into normal consumer files. Publication/registry readiness is blocked.
+**Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
+merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
+quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)
+passed 107 tests in 12 files, 19 schema fixtures and six standalone provider
+cases. [CodeQL run 43668192753](https://github.com/commercekit-tools/notify/actions/runs/43668192753)
+and the processed PR security check passed. Both providers show the complete
+redacted input context, counts, failure explanations and warning issues.
 
-The remaining material is historical evidence for the earlier 0.0.4 adoption.
+Notification-contract **0.0.5** was published by the authorized
+[package-only run 43667757934](https://github.com/commercekit-tools/action-kit/actions/runs/43667757934)
+from action-kit main `7cc2e8e6af46e7438064cc6205b22f4f7154eb94`.
+Its registry integrity matches the previously tested source artifact:
+`sha512-SMcyyWaeHdtlztt99xtWlJycSAspSTGvCaWJH7M2+u+on77JHwo8boTBOc9UUC0BQHDPo/VHmOj4gpt/XIbqmw==`.
+Cleanup's exact registry repinning, normal lockfile/bundle and local validation
+passed, including 372 tests and actual bundled local Sandbox. Required cleanup hosted checks remain pending; see
+[notification-context.md](../docs/notification-context.md).
 
-# Historical pre-publication integration artifacts
+The 0.0.5 source-packed preparation script and then-current instructions are
+archived in immutable cleanup snapshot
+[`fb566f6d2268f663a0ea8e0f43890ea5eb818e33`](https://github.com/commercekit-tools/ccv2-build-cleanup/tree/fb566f6d2268f663a0ea8e0f43890ea5eb818e33)
+([instructions](https://github.com/commercekit-tools/ccv2-build-cleanup/blob/fb566f6d2268f663a0ea8e0f43890ea5eb818e33/docs/notification-context.md),
+[script](https://github.com/commercekit-tools/ccv2-build-cleanup/blob/fb566f6d2268f663a0ea8e0f43890ea5eb818e33/integration/validate-notification-candidate.mjs)).
+It verified the exact artifact and tested isolated private consumers before
+publication. It is historical evidence; no source dependency, candidate alias,
+alternate bundle or action-kit checkout is needed by normal development or CI.
 
-Normal cleanup installation and validation now use exact published
+## Historical pre-publication integration artifacts for 0.0.4
+
+The earlier cleanup installation and validation used exact published
 `@commercekit-tools/notification-contract@0.0.4`. That package exports
 `createBuildCleanupEvent`, its shared cleanup types/schema and validation.
 Normal CI and coverage tests require no candidate package, source alias,

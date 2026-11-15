@@ -57,7 +57,7 @@ const cases = [
   ["outcome-unknown", "failure", 0, 0, 1],
 ] as const;
 
-describe("notification adapter against the source-packed contract candidate", () => {
+describe("notification adapter against the published shared contract", () => {
   for (const [status, eventStatus, accepted, failed, unknown] of cases)
     for (const dryRun of [true, false])
       it(`projects legacy ${status} in ${dryRun ? "dry-run" : "apply"} mode without inventing warning evidence`, () => {

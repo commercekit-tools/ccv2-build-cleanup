@@ -1,5 +1,9 @@
 # Cleanup notification context
 
+This page preserves the earlier 0.0.5 notification-context implementation.
+Current shared 0.0.6 registry/summary validation is in
+[consistent-reporting.md](consistent-reporting.md).
+
 **Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
 merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
 quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)

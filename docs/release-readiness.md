@@ -1,15 +1,24 @@
 # Release readiness
 
-## Shared summary renderer candidate gate
+## Published shared reporting 0.0.6
 
-**BLOCKED — normal registry rebuild:** consistent GitHub run-summary formatting
-requires the new public `renderActionSummary` helper in the existing
-notification-contract package's unpublished 0.0.6 candidate. The normal manifest,
-lockfile and committed bundle deliberately remain on published 0.0.5. Do not
-publish, replace registry versions with local links, or claim candidate tests as
-a reproducible registry build. [Candidate evidence](consistent-reporting.md)
-records isolated validation separately. All production SAP eligibility,
-operational safety and owner authorization gates below remain closed.
+**PASS — package publication:** owner-authorized [package-only run 43678067818](https://github.com/commercekit-tools/action-kit/actions/runs/43678067818)
+published notification-contract **0.0.6** from action-kit main
+`3fecce40414d709884fa48e48eca278f470b20b0` after exact-main CI and CodeQL passed.
+Verified registry integrity:
+`sha512-n6F84900sDPBeYm5dnf8HLCM9B2DUVATEeF717dqKsSXTJtq1FIj/3hZ2UcNTtXe7v8R90HYF6HIom4auM8Kyw==`.
+It matches the reviewed artifact; ccv2-client remains exact published **0.0.3**.
+
+The cleanup normal manifest, registry lockfile and bundle now consume 0.0.6.
+No source alias, developer-local file dependency or candidate override is needed.
+Normal validation and coordinated Notify integration are tracked in
+[consistent-reporting.md](consistent-reporting.md) and
+[validation-report.md](validation-report.md). Publication and green source merges
+are authorized; Action releases, Git tags, deployments, live notifications and
+real SAP operations remain outside this task. Production eligibility, protection
+review and owner release gates below remain blocked.
+
+## Historical 0.0.5 notification adoption
 
 **Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
 merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed

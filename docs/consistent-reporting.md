@@ -1,160 +1,64 @@
-# Consistent cleanup reporting candidate
+# Consistent cleanup reporting
 
-**Current evidence uses the security-hardened reviewed v2 artifact.** Earlier
-WIP/v1 results are retained as historical phases, not the current acceptance
-artifact. Normal registry/release readiness remains blocked.
+Cleanup consumes exact published `@commercekit-tools/notification-contract@0.0.6`
+for shared status styling and `renderActionSummary`. The normal GitHub Packages
+lockfile and standalone `dist/index.js` are generated from the registry dependency;
+no packed-source alias or developer-local link is needed. OAuth, transport and
+token lifecycle remain in ccv2-client **0.0.3**, and provider delivery remains in
+Notify.
 
-This focused change projects cleanup results into the shared
-`renderActionSummary` public API from the existing notification-contract package.
-The shared renderer owns status labels/icons, safe Markdown tables, known-secret
-and JWT redaction, defensive confidential-name masking, safe links and byte/row
-bounds. This repository does not implement a second formatting toolkit.
+The summary shows DRY RUN/APPLY, the original cleanup status, all ten aggregate
+counts, subscription/application, policy/cap/duration, all fourteen input names,
+validation/truncation metadata, safe error/issues, a named safety-evidence table,
+a bounded build-decision table and workflow reference. Shared formatting escapes
+untrusted HTML/Markdown and defensively redacts confidential names. Success counts
+accepted deletion requests; physical removal is never claimed.
 
-The summary shows a prominent DRY RUN or APPLY mode, the original cleanup status,
-all ten aggregate counts, subscription/application scope, retention/cap settings,
-duration, a named safety-evidence table, at most 50 build decisions, all fourteen
-input names and validation/truncation metadata. A bounded table explains safe
-errors and warning issues. Success counts accepted deletion requests; physical
-removal is never claimed. Detailed sanitized results remain at report-path.
+Notifications and summaries share `describeCleanupOutcome`: clean dry-run/no-op/
+apply is success; safely blocked dry-run with complete inventory is warning;
+errors, incomplete inventory, unknown/partial outcomes and blocked apply remain
+failure. Summary failure preserves outputs and the operation outcome. Inputs,
+retention, discovery and delete orchestration are unchanged. Production SAP
+eligibility remains unverified with no bypass.
 
-Summary severity comes from the same `describeCleanupOutcome` projection used by
-notifications: clean dry-run/no-op/apply is success; verified-inventory safely
-blocked dry-run is warning; errors, incomplete inventory, unknown/partial outcomes
-and blocked apply remain failure. Formatting changes do not alter Action failure
-behavior or authorize deletion. A summary-write failure still preserves outputs
-and the original cleanup outcome.
+## Published provenance
 
-## Compatibility gate
-
-The helper is new in the unpublished notification-contract 0.0.6 source
-candidate. Normal package.json, pnpm-lock.yaml, pnpm-workspace.yaml and dist stay
-on published 0.0.5, which does not export it. Normal registry type checking and
-bundle consistency are therefore BLOCKED for this source until separately
-authorized publication, exact consumer repinning and normal bundle regeneration.
-No package is published or fake registry dependency committed by this change.
-
-Candidate validation must use an exact-source packed tarball in a separate
-private temporary consumer workspace. Record the contract source SHA, tarball
-SHA256/integrity and bundle hash together with actual commands/results. Keep
-those candidate results separate from registry/release readiness. The existing
-0.0.5 cleanup event schema, fourteen input names/defaults, retention, discovery,
-delete orchestration and production eligibility gate are unchanged.
-
-## Validation status
-
-- PASS: unchanged published 0.0.5 frozen dependency installation; focused
-  formatting, lint and diff checks.
-- PASS: WIP exact-source 0.0.6 packed candidate bundle, strict typing and full
-  `pnpm quality` in a separate private consumer. All **386 tests in 17 files**
-  passed with zero skips, including the actual bundled local Sandbox. Coverage
-  was **99.81% statements, 99.62% branches, 100% functions and lines**; the
-  existing 98% thresholds and production-file inclusion remain unchanged.
-- PASS: candidate bundle byte consistency, metadata, public scan (72 files) and
-  full dependency audit (no known vulnerabilities).
-- PASS: historical reviewed v1 source tarball replay from shared contract commit
-  `b88ed58976af9aee532488d82ea09340b35a4d8c`; fresh private consumer, frozen
-  file:tarball install, bundle regeneration and full quality/local Sandbox
-  repeated successfully. Final provenance is recorded below.
-- BLOCKED: normal registry rebuild and release readiness pending separate
-  publication authorization and verified consumer adoption.
-- NOT RUN: hosted Sandbox dispatch, live notification-provider sends, real SAP
-  read-only or destructive validation. No tags, releases or deployment.
-
-Focused tests cover semantic success/failure/warning, all counts, safe
-error/issue explanations, input parity, malicious/forged confidential values,
-links, decision truncation and size bounds. Existing tests continue to verify
-summary-write failure preservation. Local Sandbox assertions additionally check
-status icons, all input names and counts, issue codes and secret non-disclosure.
-
-## WIP candidate provenance
-
-The provisional tarball was prepared from the shared package source under review,
-not published or represented as a registry dependency. Its exact bytes were used
-only in the private candidate consumer; normal repository files were untouched.
-
-- Tarball SHA256:
-  `eb70f8d1ee3d309df1522a50d38921192c13eb8324be5e78866cc2f3063aa16d`.
-- Integrity:
-  `sha512-281Eei0/RZ4BK3P2lsnYDSj+G/eQN4uzxEUW5XYQldNGcNwnpLoyNtjDxcn3rM/NfIN7Uoi8Pggi60AFhYJ+bA==`.
-- Candidate cleanup bundle SHA256:
-  `318e55a3aa439657d75506f262a1a3a39dedfe13ff1492dcfe4241841eaed577`.
-- Local Sandbox checkout: `ad7a4be86f60243f9005cea9feb63abbf9dbf01a`,
-  tree `73f7db75196fa9e0c503e601a6bf8d4ed3777922`; this is the previously
-  verified content tree of the pinned merged cleanup fixture source.
-
-Commands actually executed in the private candidate consumer used Node 24.21.0
-and pnpm 12.6.0:
-
-```sh
-pnpm install --no-frozen-lockfile # exact file:tarball in private workspace only
-pnpm bundle
-pnpm typecheck
-CLEANUP_SANDBOX_PATH=<reviewed local checkout> CLEANUP_SANDBOX_PORT=18887 pnpm test:coverage
-CLEANUP_SANDBOX_PATH=<reviewed local checkout> CLEANUP_SANDBOX_PORT=18887 pnpm quality
-```
-
-The local runtime created isolated synthetic runs, asserted **zero target API
-mutations**, and removed its fixture runs in finally blocks. Passing these
-checks establishes neither production SAP eligibility nor authorization to
-publish, release, deploy or delete.
-
-## Historical reviewed v1 candidate replay
-
-The final reviewed source artifact includes shared truncation and safe-link
-hardening after the provisional run. It was replayed in a fresh private consumer
-without changing normal repository dependency or bundle files.
-
-- Contract source: `b88ed58976af9aee532488d82ea09340b35a4d8c`.
-- Tarball SHA256:
-  `645b38e7456e63b96e7630da7d63c1f6ccbf27854b5b7001ff77db435afa2393`.
-- Integrity:
-  `sha512-eqV2tVnjmuYtG5ExjqScPCGxxR8MW8QlbeuXMA/YjzKzujgSMf9oMQpvQDqmysGhHLN8918XtNh9gbO7UQH4Ug==`.
-- Final candidate cleanup bundle SHA256:
-  `c6214b521678467b42a2aef0d8ea46eb957d725f5aa9955e1ef1c8207ab494f7`.
-
-Commands executed: `pnpm install --no-frozen-lockfile`,
-`pnpm install --frozen-lockfile`, `pnpm bundle`, and the complete `pnpm quality`
-with the reviewed local Sandbox and port 18887. All **386 tests in 17 files**
-passed with zero skips; coverage remained **99.81% statements, 99.62% branches,
-100% functions and lines**. Bundle byte consistency, metadata, public scan
-(72 files) and the full audit passed with no known vulnerabilities. Local
-Sandbox input/status/count/issue checks and secret assertions passed with zero
-target mutations.
-
-This is exact-source candidate integration evidence. Normal registry rebuild,
-publication and release readiness remain blocked pending separate authorization
-and a verified published dependency. No hosted dispatch, provider send, Git tag,
-release, deployment or real SAP operation was performed.
-
-## Current reviewed v2 candidate replay
-
-Security review added case-insensitive percent-encoding recognition for known
-secret redaction and normalized trailing-dot Slack webhook hosts. The cleanup
-regressions exercise lowercase/mixed percent-encoded secrets in inputs, scope
-and decisions, plus trailing-dot webhook display/link rejection. All earlier
-status/input/count/issue, escaping, limits and output-preservation tests remain.
-
-- Current contract source: `475cc4db42f79310240496201f90d7047aa54330`.
-- Current tarball SHA256:
-  `e4b79576328c2992a96fed087e9ba6e63970e8b54d6fca976a6652702a7a73a9`.
-- Integrity:
+- Authorized [package-only publication 43678067818](https://github.com/commercekit-tools/action-kit/actions/runs/43678067818): PASS.
+- Publication main: `3fecce40414d709884fa48e48eca278f470b20b0`.
+- Reviewed source before merge: `475cc4db42f79310240496201f90d7047aa54330`.
+- Registry version: **0.0.6**; shasum `8030f643d1dd6d741caa2c3c0ba321ad82b30cca`.
+- Verified integrity:
   `sha512-n6F84900sDPBeYm5dnf8HLCM9B2DUVATEeF717dqKsSXTJtq1FIj/3hZ2UcNTtXe7v8R90HYF6HIom4auM8Kyw==`.
-- Current candidate bundle SHA256:
-  `4aa35bc6852278754182751b7897364f9a3d1605f6f9967ea9d469a66b564b96`.
-- Cleanup runtime-source fingerprint (src, action metadata and TypeScript config):
-  `bdab709815b363e9d3f9583a162a9bba4861e28674c1874001097cc7afd7650d`.
+- The published artifact matches reviewed SHA256
+  `e4b79576328c2992a96fed087e9ba6e63970e8b54d6fca976a6652702a7a73a9`.
 
-A fresh private consumer passed `pnpm install --no-frozen-lockfile`, frozen
-installation, `pnpm bundle` and the full `pnpm quality` with the reviewed local
-Sandbox on port 18887. All **388 tests in 17 files** passed with zero skips;
-coverage was **99.81% statements, 99.62% branches, 100% functions and lines**.
-Existing 98% thresholds and production inclusion were unchanged. Bundle byte
-consistency, metadata, public scan (72 files) and full dependency audit passed
-with no known vulnerabilities. Actual bundled local Sandbox tests verified
-summary icons/tables, every input/count, error/warning issues, secret masking
-and zero target mutations.
+## Normal validation
 
-Normal package/lock/bundle files still use published 0.0.5 and were not replaced
-with the candidate. The 0.0.6 publication/normal-registry gate remains BLOCKED.
-This replay performed no hosted dispatch, live provider send, Git tag, release,
-deployment or real SAP operation.
+Registry frozen installation, public metadata/schema/export checks, normal
+bundle regeneration and full `pnpm quality` passed with the reviewed local
+Sandbox. All **388 tests in 17 files** passed with zero skips. Coverage is
+**99.81% statements, 99.62% branches, 100% functions and lines**; all 98% thresholds
+and production-file inclusion remain unchanged. Bundle consistency,
+metadata/actionlint, public scanning (72 files), full dependency audit (no known
+vulnerabilities) and `git diff --check` passed. Actual bundled Sandbox execution
+verified all inputs/counts/issues, status/table formatting, masking and zero
+target mutations. Required hosted checks must pass on the final PR head.
+
+Normal registry bundle SHA256:
+`ab30073d8bb01ee4e120ba58f57737af2a9fd99b94bffb7cc52b83a80d004f9f`.
+This is the regenerated registry bundle, distinct from the earlier candidate
+bundle fingerprint. No candidate environment flag or package source checkout
+was used. Commands actually run: `pnpm install --no-frozen-lockfile`,
+`pnpm install --frozen-lockfile`, `pnpm bundle`, public export/schema assertions,
+`CLEANUP_SANDBOX_PATH=<reviewed checkout> pnpm quality`, local actionlint and
+`git diff --check`.
+
+The earlier exact-source candidate results, including security regressions for
+mixed-case encoded credentials and canonical webhook hosts, are archived at
+immutable [4686db93](https://github.com/commercekit-tools/ccv2-build-cleanup/blob/4686db93bbf0accbf232a82874421920d4598b56/docs/consistent-reporting.md).
+That pre-publication procedure and its normal-registry BLOCKED state describe
+historical evidence. It is not the current dependency/build path.
+
+No live SAP or notification-provider validation is implied by package publication
+or local Sandbox success. Action releases, Git tags, deployment and real deletion
+remain prohibited in this task; remaining production gates are unchanged.

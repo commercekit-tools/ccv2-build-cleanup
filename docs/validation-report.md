@@ -1,5 +1,42 @@
 # Validation report
 
+## Published shared reporting 0.0.6
+
+The owner authorized package publication and green merges for the coordinated
+reporting changes. [Package-only run 43678067818](https://github.com/commercekit-tools/action-kit/actions/runs/43678067818)
+published **0.0.6** from action-kit main `3fecce40414d709884fa48e48eca278f470b20b0`.
+Registry integrity matches the reviewed source artifact:
+`sha512-n6F84900sDPBeYm5dnf8HLCM9B2DUVATEeF717dqKsSXTJtq1FIj/3hZ2UcNTtXe7v8R90HYF6HIom4auM8Kyw==`.
+Cleanup now uses the real registry dependency and regenerated normal lock/bundle,
+with ccv2-client **0.0.3** unchanged. There are no local dependency links or
+candidate overrides. See [consistent-reporting.md](consistent-reporting.md) for
+current format, provenance and validation. Required checks on the normal final
+head must pass before merge. Production eligibility and owner release gates
+remain blocked; no Git tag, Action release, deploy, provider send or real SAP
+operation is authorized.
+
+**PASS — normal registry validation:** frozen installation, public metadata/
+schema/API checks, bundle generation, full `pnpm quality` with local Sandbox,
+metadata/actionlint, scan, full audit and diff checks passed. **388 tests / 17
+files, zero skips; 99.81% statements, 99.62% branches, 100% functions/lines**.
+All 98% thresholds remain unchanged. Bundle consistency passed for normal SHA256
+`ab30073d8bb01ee4e120ba58f57737af2a9fd99b94bffb7cc52b83a80d004f9f`.
+The actual bundled Sandbox matrix preserved zero target mutations and verified
+input/notification/summary parity. Required hosted validation and CodeQL on the
+normal final head are pending and will gate merge; their links are recorded in
+the PR handoff after completion.
+
+The publication main also passed [CI 43677942127](https://github.com/commercekit-tools/action-kit/actions/runs/43677942127)
+and [CodeQL 43677942074](https://github.com/commercekit-tools/action-kit/actions/runs/43677942074).
+Processed main analysis `2169851728` has empty error/warning fields; no open
+CodeQL alerts were returned before publication. The package-only workflow reran
+all 394 shared tests and installed-tarball public export/declaration checks.
+
+## Historical pre-0.0.6 validation evidence
+
+The following records retain earlier 0.0.5 and pre-publication evidence. Current
+0.0.6 results are recorded above and in consistent-reporting.md.
+
 **Compatible Notify: PASS.** [PR #18](https://github.com/commercekit-tools/notify/pull/18)
 merged as `6331ff4a60956a3a2b546e84d737c9338ca46bda` after normal registry-backed
 quality and CodeQL passed. [CI run 43668192744](https://github.com/commercekit-tools/notify/actions/runs/43668192744)

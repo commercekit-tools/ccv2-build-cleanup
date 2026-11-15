@@ -290,3 +290,44 @@ describe("shared cleanup job summary", () => {
     expect(value.decisions).toHaveLength(100);
   });
 });
+
+it("redacts lowercase and mixed percent-encoded known secrets throughout summaries", () => {
+  const value = fixture();
+  value.inputs = { ...value.inputs! };
+  const secret = "Synthetic Secret:/?+";
+  Object.defineProperty(value.inputs, "client-secret", {
+    value: secret,
+    enumerable: true,
+  });
+  const encoded = encodeURIComponent(secret);
+  const lower = encoded.replace(/%[a-f0-9]{2}/gi, (part) => part.toLowerCase());
+  let index = 0;
+  const mixed = encoded.replace(/%[a-f0-9]{2}/gi, (part) =>
+    index++ % 2 ? part.toLowerCase() : part.toUpperCase(),
+  );
+  value.inputs["application-code"] = lower;
+  value.scope.applicationCode = mixed;
+  value.decisions.push({
+    code: `unsafe-${mixed}`,
+    disposition: "protected",
+    reasons: ["explicitly-excluded"],
+  });
+  const markdown = summary(value);
+  for (const confidential of [secret, lower, mixed])
+    expect(markdown).not.toContain(confidential);
+  expect(markdown).toContain("REDACTED");
+});
+
+it("redacts trailing-dot Slack webhook URLs and omits them as workflow links", () => {
+  const value = fixture();
+  value.inputs = { ...value.inputs! };
+  const webhook =
+    "https://hooks.slack.com./services/synthetic/summary/private-marker";
+  value.inputs["api-base-url"] = webhook;
+  value.scope.applicationCode = webhook;
+  const markdown = summary(value, webhook);
+  expect(markdown).not.toContain("private-marker");
+  expect(markdown).not.toContain("hooks.slack.com");
+  expect(markdown).not.toContain("[Workflow run](");
+  expect(markdown).toContain("REDACTED URL");
+});

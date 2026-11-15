@@ -1,5 +1,9 @@
 # Consistent cleanup reporting candidate
 
+**Current evidence uses the security-hardened reviewed v2 artifact.** Earlier
+WIP/v1 results are retained as historical phases, not the current acceptance
+artifact. Normal registry/release readiness remains blocked.
+
 This focused change projects cleanup results into the shared
 `renderActionSummary` public API from the existing notification-contract package.
 The shared renderer owns status labels/icons, safe Markdown tables, known-secret
@@ -47,7 +51,7 @@ delete orchestration and production eligibility gate are unchanged.
   existing 98% thresholds and production-file inclusion remain unchanged.
 - PASS: candidate bundle byte consistency, metadata, public scan (72 files) and
   full dependency audit (no known vulnerabilities).
-- PASS: final reviewed source tarball replay from shared contract commit
+- PASS: historical reviewed v1 source tarball replay from shared contract commit
   `b88ed58976af9aee532488d82ea09340b35a4d8c`; fresh private consumer, frozen
   file:tarball install, bundle regeneration and full quality/local Sandbox
   repeated successfully. Final provenance is recorded below.
@@ -94,7 +98,7 @@ mutations**, and removed its fixture runs in finally blocks. Passing these
 checks establishes neither production SAP eligibility nor authorization to
 publish, release, deploy or delete.
 
-## Final reviewed candidate replay
+## Historical reviewed v1 candidate replay
 
 The final reviewed source artifact includes shared truncation and safe-link
 hardening after the provisional run. It was replayed in a fresh private consumer
@@ -121,3 +125,36 @@ This is exact-source candidate integration evidence. Normal registry rebuild,
 publication and release readiness remain blocked pending separate authorization
 and a verified published dependency. No hosted dispatch, provider send, Git tag,
 release, deployment or real SAP operation was performed.
+
+## Current reviewed v2 candidate replay
+
+Security review added case-insensitive percent-encoding recognition for known
+secret redaction and normalized trailing-dot Slack webhook hosts. The cleanup
+regressions exercise lowercase/mixed percent-encoded secrets in inputs, scope
+and decisions, plus trailing-dot webhook display/link rejection. All earlier
+status/input/count/issue, escaping, limits and output-preservation tests remain.
+
+- Current contract source: `475cc4db42f79310240496201f90d7047aa54330`.
+- Current tarball SHA256:
+  `e4b79576328c2992a96fed087e9ba6e63970e8b54d6fca976a6652702a7a73a9`.
+- Integrity:
+  `sha512-n6F84900sDPBeYm5dnf8HLCM9B2DUVATEeF717dqKsSXTJtq1FIj/3hZ2UcNTtXe7v8R90HYF6HIom4auM8Kyw==`.
+- Current candidate bundle SHA256:
+  `4aa35bc6852278754182751b7897364f9a3d1605f6f9967ea9d469a66b564b96`.
+- Cleanup runtime-source fingerprint (src, action metadata and TypeScript config):
+  `bdab709815b363e9d3f9583a162a9bba4861e28674c1874001097cc7afd7650d`.
+
+A fresh private consumer passed `pnpm install --no-frozen-lockfile`, frozen
+installation, `pnpm bundle` and the full `pnpm quality` with the reviewed local
+Sandbox on port 18887. All **388 tests in 17 files** passed with zero skips;
+coverage was **99.81% statements, 99.62% branches, 100% functions and lines**.
+Existing 98% thresholds and production inclusion were unchanged. Bundle byte
+consistency, metadata, public scan (72 files) and full dependency audit passed
+with no known vulnerabilities. Actual bundled local Sandbox tests verified
+summary icons/tables, every input/count, error/warning issues, secret masking
+and zero target mutations.
+
+Normal package/lock/bundle files still use published 0.0.5 and were not replaced
+with the candidate. The 0.0.6 publication/normal-registry gate remains BLOCKED.
+This replay performed no hosted dispatch, live provider send, Git tag, release,
+deployment or real SAP operation.
